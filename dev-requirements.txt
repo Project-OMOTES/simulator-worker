@@ -17,14 +17,24 @@ colorama==0.4.6
     #   build
     #   click
     #   pytest
+coloredlogs==15.0.1
+    # via
+    #   -c ..\..\requirements.txt
+    #   simulator-worker (..\..\pyproject.toml)
 coverage[toml]==7.4.1
-    # via pytest-cov
+    # via
+    #   coverage
+    #   pytest-cov
 flake8==6.0.0
     # via
     #   flake8-pyproject
     #   simulator-worker (..\..\pyproject.toml)
 flake8-pyproject==1.2.3
     # via simulator-worker (..\..\pyproject.toml)
+humanfriendly==10.0
+    # via
+    #   -c ..\..\requirements.txt
+    #   coloredlogs
 iniconfig==2.0.0
     # via pytest
 isort==5.13.2
@@ -53,6 +63,10 @@ pyflakes==3.0.1
     # via flake8
 pyproject-hooks==1.0.0
     # via build
+pyreadline3==3.4.1
+    # via
+    #   -c ..\..\requirements.txt
+    #   humanfriendly
 pytest==7.3.2
     # via
     #   pytest-cov
