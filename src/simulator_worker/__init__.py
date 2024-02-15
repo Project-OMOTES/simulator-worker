@@ -16,3 +16,4 @@
 """
     __init__.py file containing the defaults
 """
+from simulator_worker.simulator_worker import start_app

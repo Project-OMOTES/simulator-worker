@@ -1,3 +1,3 @@
-from simulator_worker import main
+from simulator_worker import start_app
 
-main()
+start_app(loglevel="DEBUG", colors=True)

@@ -18,12 +18,12 @@ import logging
 import traceback
 from datetime import datetime, timedelta
 
-from app_logging import LogLevel, setup_logging
+from simulator_worker.app_logging import LogLevel, setup_logging
 
 logger = logging.getLogger(__name__)
 
 
-def testable_function(input: datetime):
+def testable_function(input: datetime) -> datetime:
     """Testable function"""
     return input + +timedelta(hours=1)
 
@@ -42,9 +42,5 @@ def start_app(loglevel: str, colors: bool) -> None:
         logger.debug(traceback.format_exc())
 
 
-def main():
-    start_app(loglevel="DEBUG", colors=True)
-
-
 if __name__ == "__main__":
-    main()
+    start_app(loglevel="DEBUG", colors=True)
