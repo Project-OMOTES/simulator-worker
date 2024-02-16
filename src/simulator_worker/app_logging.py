@@ -13,17 +13,18 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""
-    Setup logging for this python application
-"""
+"""Setup logging for this python application."""
 
 import logging
-import coloredlogs
 import sys
 from enum import Enum
 
+import coloredlogs
+
 
 class LogLevel(Enum):
+    """Loglevel enum."""
+
     DEBUG = logging.DEBUG
     INFO = logging.INFO
     WARNING = logging.WARNING
@@ -32,7 +33,7 @@ class LogLevel(Enum):
     @staticmethod
     def parse(value: str) -> "LogLevel":
         """
-        parses a given string for LogLevel's
+        Parses a given string for LogLevel's.
 
         Parameters
         ----------
@@ -42,7 +43,7 @@ class LogLevel(Enum):
         Returns
         -------
         LogLevel
-            Loglevel for this logger
+            Loglevel for this logger.
         """
         lowered = value.lower()
 
@@ -65,7 +66,7 @@ LOG_LEVEL: LogLevel | None = None
 
 def setup_logging(log_level: LogLevel, colors: bool = True) -> None:
     """
-    Initializes logging
+    Initializes logging.
 
     Parameters
     ----------

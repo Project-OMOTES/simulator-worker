@@ -24,12 +24,12 @@ logger = logging.getLogger(__name__)
 
 
 def testable_function(input: datetime) -> datetime:
-    """Testable function"""
+    """Testable function."""
     return input + +timedelta(hours=1)
 
 
 def start_app(loglevel: str, colors: bool) -> None:
-    """Design Toolkit Application application"""
+    """Design Toolkit Application application."""
     try:
         setup_logging(LogLevel.parse(loglevel), colors)
 

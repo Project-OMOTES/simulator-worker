@@ -14,9 +14,10 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Test script for python template."""
-from datetime import datetime
 import unittest
-from simulator_worker import main
+from datetime import datetime
+
+from simulator_worker.simulator_worker import testable_function
 
 
 class MyTest(unittest.TestCase):
@@ -25,9 +26,8 @@ class MyTest(unittest.TestCase):
         current_time = datetime(1970, 1, 1, 13, 00)
 
         # Act
-        result = main.testable_function(current_time)
+        result = testable_function(current_time)
 
         # Assert
         expected_result = datetime(1970, 1, 1, 14, 00)
         self.assertEqual(expected_result, result)
-
