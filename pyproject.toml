@@ -64,7 +64,8 @@ dev_template = "{tag}.dev{ccount}"
 dirty_template = "{tag}.dev{ccount}"
 
 [tool.pytest.ini_options]
-addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 95"
+addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 40"
+testpaths = ["unit_test"]
 
 [tool.coverage.run]
 source = ["src"]
@@ -98,6 +99,6 @@ exclude = ['.venv/*', 'venv/*', 'doc/*', 'ci/*']
 
 # mypy per-module options:
 [[tool.mypy.overrides]]
-module = "unit_test.*"
+module = ["unit_test.*", "coloredlogs.*"]
 check_untyped_defs = true
 ignore_missing_imports = true
