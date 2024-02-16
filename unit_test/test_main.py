@@ -17,7 +17,7 @@
 import unittest
 from datetime import datetime
 
-from simulator_worker.simulator_worker import testable_function
+from simulator_worker import simulator_worker
 
 
 class MyTest(unittest.TestCase):
@@ -26,7 +26,7 @@ class MyTest(unittest.TestCase):
         current_time = datetime(1970, 1, 1, 13, 00)
 
         # Act
-        result = testable_function(current_time)
+        result = simulator_worker.testable_function(current_time)
 
         # Assert
         expected_result = datetime(1970, 1, 1, 14, 00)
