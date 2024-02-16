@@ -4,6 +4,8 @@
 #
 #    pip-compile --constraint='..\..\requirements.txt' --extra=dev --output-file='..\..\dev-requirements.txt' '..\..\pyproject.toml'
 #
+attrs==23.2.0
+    # via flake8-bugbear
 black==22.1.0
     # via simulator-worker (..\..\pyproject.toml)
 build==1.0.3
@@ -27,9 +29,23 @@ coverage[toml]==7.4.1
     #   pytest-cov
 flake8==6.0.0
     # via
+    #   flake8-bugbear
+    #   flake8-docstrings
     #   flake8-pyproject
+    #   flake8-quotes
+    #   flake8-tuple
     #   simulator-worker (..\..\pyproject.toml)
+flake8-bugbear==23.9.16
+    # via simulator-worker (..\..\pyproject.toml)
+flake8-docstrings==1.7.0
+    # via simulator-worker (..\..\pyproject.toml)
+flake8-mock==0.4
+    # via simulator-worker (..\..\pyproject.toml)
 flake8-pyproject==1.2.3
+    # via simulator-worker (..\..\pyproject.toml)
+flake8-quotes==3.3.2
+    # via simulator-worker (..\..\pyproject.toml)
+flake8-tuple==0.4.1
     # via simulator-worker (..\..\pyproject.toml)
 humanfriendly==10.0
     # via
@@ -59,6 +75,8 @@ pluggy==1.4.0
     # via pytest
 pycodestyle==2.10.0
     # via flake8
+pydocstyle==6.3.0
+    # via flake8-docstrings
 pyflakes==3.0.1
     # via flake8
 pyproject-hooks==1.0.0
@@ -77,6 +95,10 @@ python-dotenv==1.0.1
     # via
     #   -c ..\..\requirements.txt
     #   simulator-worker (..\..\pyproject.toml)
+six==1.16.0
+    # via flake8-tuple
+snowballstemmer==2.2.0
+    # via pydocstyle
 tomli==2.0.1
     # via black
 typing-extensions==4.9.0
