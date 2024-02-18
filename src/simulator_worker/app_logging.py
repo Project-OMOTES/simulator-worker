@@ -64,7 +64,11 @@ class LogLevel(Enum):
 LOG_LEVEL: LogLevel | None = None
 
 
-def setup_logging(log_level: LogLevel, colors: bool = True) -> None:
+def setup_logging(
+    log_level: LogLevel,
+    colors: bool = True,
+    format_string: str = "%(asctime)s [%(threadName)s][%(filename)s:%(lineno)d][%(levelname)s]: %(message)s",  # noqa
+) -> None:
     """
     Initializes logging.
 
@@ -75,16 +79,13 @@ def setup_logging(log_level: LogLevel, colors: bool = True) -> None:
     """
     global LOG_LEVEL
     root_logger = logging.getLogger()
-    root_logger.info("Will use log level:", str(log_level))
+    root_logger.info(f"Will use log level:{str(log_level)}")
     root_logger.setLevel(log_level.value)
     LOG_LEVEL = log_level
     if colors:
-        coloredlogs.install(log_level.value, logger=root_logger)
+        coloredlogs.install(log_level.value, logger=root_logger, fmt=format_string)
     else:
         log_handler = logging.StreamHandler(sys.stdout)
-        formatter = logging.Formatter(
-            fmt="%(asctime)s [%(threadName)s][%(filename)s:%(lineno)d][%(levelname)s]: %(message)s"
-        )
-        log_handler.setFormatter(formatter)
+        log_handler.setFormatter(logging.Formatter(fmt=format_string))
         root_logger.addHandler(log_handler)
     pass

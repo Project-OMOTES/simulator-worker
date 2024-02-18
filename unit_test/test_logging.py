@@ -15,12 +15,11 @@
 
 """Test script for python template."""
 import unittest
-from datetime import datetime
 
-from simulator_worker import simulator_worker
+from simulator_worker.app_logging import LogLevel, setup_logging
 
 
-class MyTest(unittest.TestCase):
+class TestLogging(unittest.TestCase):
     def tearDown(self) -> None:
         import logging
         from importlib import reload
@@ -29,29 +28,19 @@ class MyTest(unittest.TestCase):
         reload(logging)
         return super().tearDown()
 
-    def test__testable_function__is_correct(self) -> None:
-        # Arrange
-        current_time = datetime(1970, 1, 1, 13, 00)
-
-        # Act
-        result = simulator_worker.testable_function(current_time)
-
-        # Assert
-        expected_result = datetime(1970, 1, 1, 14, 00)
-        self.assertEqual(expected_result, result)
-
     def test_start_app_info(self) -> None:
         try:
-            simulator_worker.start_app(loglevel="INFO", colors=True)
+            setup_logging(LogLevel.parse("INFO"), colors=True)
         except Exception as e:
             self.fail(f"simulator_worker.start_app() raised an exception: {e}")
 
     def test_start_app_debug(self) -> None:
         try:
-            simulator_worker.start_app(loglevel="DEBUG", colors=False)
+            setup_logging(LogLevel.parse("DEBUG"), colors=False)
+            pass
         except Exception as e:
             self.fail(f"simulator_worker.start_app() raised an exception: {e}")
 
     def test_start_app_wrong_logtype(self) -> None:
         with self.assertRaises(ValueError):
-            simulator_worker.start_app(loglevel="WRONG_LOG_TYPE", colors=False)
+            setup_logging(LogLevel.parse("WRONG_LOG_TYPE"), colors=False)

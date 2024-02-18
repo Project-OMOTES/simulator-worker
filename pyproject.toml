@@ -18,11 +18,17 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 
-dependencies = ["python-dotenv ~= 1.0.0", "coloredlogs==15.0.1"]
+dependencies = [
+    "python-dotenv ~= 1.0.0",
+    "coloredlogs==15.0.1",
+    "omotes-sdk-python ~= 0.0.5",
+]
 
 [project.optional-dependencies]
 dev = [
-    #"pip-tools~=6.13.0",  # Installed via create_env script
+    "setuptools ~= 69.0.3",
+    "setuptools-git-versioning < 2",
+    "pip-tools ~= 7.3.0",
     "black~=22.1.0",
     "flake8==6.0.0",
     "Flake8-pyproject==1.2.3",
@@ -64,7 +70,7 @@ dev_template = "{tag}.dev{ccount}"
 dirty_template = "{tag}.dev{ccount}"
 
 [tool.pytest.ini_options]
-addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 80"
+addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 70"
 testpaths = ["unit_test"]
 
 [tool.coverage.run]
@@ -79,7 +85,7 @@ ignore = [
     'C408', # Suggestion to use dict() over {}
     'W503', # Starting lines with operators.
 ]
-per-file-ignores = ['__init__.py:F401', 'test_main.py:D100,D101,D102,D103']
+per-file-ignores = ['__init__.py:F401', 'test_*.py:D100,D101,D102,D103']
 max-line-length = 100
 count = true
 

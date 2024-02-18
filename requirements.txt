@@ -4,11 +4,68 @@
 #
 #    pip-compile --output-file='..\..\requirements.txt' '..\..\pyproject.toml'
 #
+aio-pika==9.3.1
+    # via omotes-sdk-python
+aiormq==6.7.7
+    # via aio-pika
+amqp==5.2.0
+    # via kombu
+billiard==4.2.0
+    # via celery
+celery==5.3.6
+    # via omotes-sdk-python
+click==8.1.7
+    # via
+    #   celery
+    #   click-didyoumean
+    #   click-plugins
+    #   click-repl
+click-didyoumean==0.3.0
+    # via celery
+click-plugins==1.1.1
+    # via celery
+click-repl==0.3.0
+    # via celery
+colorama==0.4.6
+    # via click
 coloredlogs==15.0.1
     # via simulator-worker (..\..\pyproject.toml)
 humanfriendly==10.0
     # via coloredlogs
+idna==3.6
+    # via yarl
+kombu==5.3.5
+    # via celery
+multidict==6.0.5
+    # via yarl
+omotes-sdk-protocol==0.0.5
+    # via omotes-sdk-python
+omotes-sdk-python==0.0.5
+    # via simulator-worker (..\..\pyproject.toml)
+pamqp==3.2.1
+    # via aiormq
+prompt-toolkit==3.0.43
+    # via click-repl
+protobuf==4.25.3
+    # via omotes-sdk-protocol
 pyreadline3==3.4.1
     # via humanfriendly
+python-dateutil==2.8.2
+    # via celery
 python-dotenv==1.0.1
     # via simulator-worker (..\..\pyproject.toml)
+six==1.16.0
+    # via python-dateutil
+tzdata==2024.1
+    # via celery
+vine==5.1.0
+    # via
+    #   amqp
+    #   celery
+    #   kombu
+wcwidth==0.2.13
+    # via prompt-toolkit
+yarl==1.9.4
+    # via
+    #   aio-pika
+    #   aiormq
