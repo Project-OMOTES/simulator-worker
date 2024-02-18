@@ -21,6 +21,14 @@ from simulator_worker import simulator_worker
 
 
 class MyTest(unittest.TestCase):
+    def tearDown(self) -> None:
+        import logging
+        from importlib import reload
+
+        logging.shutdown()
+        reload(logging)
+        return super().tearDown()
+
     def test__testable_function__is_correct(self) -> None:
         # Arrange
         current_time = datetime(1970, 1, 1, 13, 00)
@@ -31,3 +39,19 @@ class MyTest(unittest.TestCase):
         # Assert
         expected_result = datetime(1970, 1, 1, 14, 00)
         self.assertEqual(expected_result, result)
+
+    def test_start_app_info(self) -> None:
+        try:
+            simulator_worker.start_app(loglevel="INFO", colors=True)
+        except Exception as e:
+            self.fail(f"simulator_worker.start_app() raised an exception: {e}")
+
+    def test_start_app_debug(self) -> None:
+        try:
+            simulator_worker.start_app(loglevel="DEBUG", colors=False)
+        except Exception as e:
+            self.fail(f"simulator_worker.start_app() raised an exception: {e}")
+
+    def test_start_app_wrong_logtype(self) -> None:
+        with self.assertRaises(ValueError):
+            simulator_worker.start_app(loglevel="WRONG_LOG_TYPE", colors=False)

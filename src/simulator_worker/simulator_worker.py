@@ -30,8 +30,8 @@ def testable_function(input: datetime) -> datetime:
 
 def start_app(loglevel: str, colors: bool) -> None:
     """Design Toolkit Application application."""
+    setup_logging(LogLevel.parse(loglevel), colors)
     try:
-        setup_logging(LogLevel.parse(loglevel), colors)
 
         logger.info(f"The time + 1 hour is: {testable_function(datetime.now())}")
 
