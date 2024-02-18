@@ -2,7 +2,7 @@ name: Deply to GitHub Container Registry
 on:
   push:
     tags:
-      - v*.*
+      - '*'
 
 jobs:
  publish-container-image:
@@ -22,7 +22,7 @@ jobs:
 
    - name: Build the container image
      run: |
-      docker build . --tag ghcr.io/project-omotes/omotes-simulator-worker:latest
+      docker build . --tag ghcr.io/project-omotes/omotes-simulator-worker:latest --tag ghcr.io/project-omotes/omotes-simulator-worker:${{github.ref_name}}
       docker run ghcr.io/project-omotes/omotes-simulator-worker:latest
-      docker push ghcr.io/project-omotes/omotes-simulator-worker:latest
+      docker push ghcr.io/project-omotes/omotes-simulator-worker:${{github.ref_name}}
 
