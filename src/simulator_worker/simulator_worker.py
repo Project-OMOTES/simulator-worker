@@ -1,4 +1,4 @@
-#  Copyright (c) 2023. {cookiecutter.cookiecutter.maintainer_name}}
+#  Copyright (c) 2023. Deltares
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Main python file for Design Toolkit Application."""
+"""Main python file for Simulator-worker."""
 import logging
 import os
 import traceback
@@ -21,17 +21,18 @@ import traceback
 # from pathlib import Path
 from typing import Dict
 
+from app_logging import LogLevel, setup_logging
 from celery.signals import after_setup_logger  # type: ignore
 from omotes_sdk.internal.worker.worker import (  # type: ignore
     UpdateProgressHandler,
     initialize_worker,
 )
 
-from simulator_worker.app_logging import LogLevel, setup_logging
+# from simulator_worker.app_logging import LogLevel, setup_logging
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger("grow_worker")
+logger = logging.getLogger("simulator_worker")
 
 
 def simulator_worker_task(
@@ -47,18 +48,22 @@ def simulator_worker_task(
     :param input_esdl:
     :param workflow_config:
     :param update_progress_handler:
-    :return: GROW optimized or simulated ESDL
+    :return: Simulated ESDL (no changes from input)
     """
     # base_folder = Path(__file__).resolve().parent.parent
-    write_result_db_profiles = "INFLUXDB_HOSTNAME" in os.environ
-    influxdb_host = os.environ.get("INFLUXDB_HOSTNAME", "localhost")
-    influxdb_port = int(os.environ.get("INFLUXDB_PORT", "8086"))
+    # write_result_db_profiles = "INFLUXDB_HOSTNAME" in os.environ
+    # influxdb_host = os.environ.get("INFLUXDB_HOSTNAME", "localhost")
+    # influxdb_port = int(os.environ.get("INFLUXDB_PORT", "8086"))
 
-    logger.info(
-        f"Will write result profiles to database: {write_result_db_profiles}. "
-        f"At {influxdb_host}:{influxdb_port}"
-    )
+    # logger.info(
+    #     f"Will write result profiles to database: {write_result_db_profiles}. "
+    #     f"At {influxdb_host}:{influxdb_port}"
+    # )
 
+    logging.info(f"Simulator called with ESDL={input_esdl}, CONFIG={workflow_config}")
+    pass
+
+    logging.info("Starting Simulator-core...")
     # TODO
     # add simulator-core
     # pass update_progress_handler(fraction: float, msg: str) to simulator-core
@@ -69,12 +74,12 @@ def simulator_worker_task(
 
 @after_setup_logger.connect
 def setup_loggers(
-    logger: logging.Logger, loglevel: str, colorize: str, format: str, **kwargs: str
+    logger: logging.Logger, loglevel: int, colorize: bool, format: str, **kwargs: str
 ) -> None:
     """Event handler to setup logging."""
     setup_logging(
-        log_level=LogLevel.parse(loglevel),
-        colors=(colorize.lower() in ["yes", "true"]),
+        log_level=LogLevel(loglevel),
+        colors=colorize,
         format_string=format,
     )
     pass
