@@ -72,7 +72,7 @@ t = threading.Thread(target=task_monitor)
 t.daemon = True
 t.start()
 
-q_name = "grow"
+q_name = "simulator"
 simulator_job_id: UUID = uuid4()
 
 optimizer_task = app.signature(
