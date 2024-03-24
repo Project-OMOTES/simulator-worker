@@ -12,17 +12,25 @@ volumes:
 
 services:
   rabbitmq:
-    image: bitnami/rabbitmq:3.8.27
+    image: rabbitmq:3.12-management
+    restart: unless-stopped
+    volumes:
+      - "broker-data:/var/lib/rabbitmq/"
+      - "./local_test/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_ROOT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_ROOT_PASSWORD}
+    hostname: rabbitmq-nwn
     ports:
-      - "15672:15672"
-      - "5673:5672"
+      - '5672:5672'
+      - '15672:15672'
     networks:
-      - omotes
+      - nwn
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
+      test: rabbitmq-diagnostics -q ping
       interval: 10s
-      timeout: 10s
-      retries: 5
+      timeout: 5s
+      retries: 10
 
   omotes_influxdb:
     image: influxdb:1.7
@@ -52,19 +60,45 @@ services:
     volumes:
       - influxdb_storage:/var/lib/influxdb
 
-  simulator_worker:
-    build:
-      context: .
-    env_file: .env
-    networks:
-      - omotes
-    deploy:
-      replicas: 1
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      omotes_influxdb:
-        condition: service_healthy
+    orchestrator:
+      image: ghcr.io/project-omotes/omotes_orchestrator:0.0.6
+      restart: unless-stopped
+      networks:
+        - nwn
+      environment:
+        CELERY_RABBITMQ_USERNAME: ${RABBITMQ_CELERY_USER_NAME}
+        CELERY_RABBITMQ_PASSWORD: ${RABBITMQ_CELERY_USER_PASSWORD}
+        CELERY_RABBITMQ_HOSTNAME: rabbitmq-nwn
+        CELERY_RABBITMQ_PORT: 5672
+        CELERY_RABBITMQ_VIRTUALHOST: omotes_celery
+
+        SDK_RABBITMQ_USERNAME: ${RABBITMQ_OMOTES_USER_NAME}
+        SDK_RABBITMQ_PASSWORD: ${RABBITMQ_OMOTES_USER_PASSWORD}
+        SDK_RABBITMQ_HOSTNAME: rabbitmq-nwn
+        SDK_RABBITMQ_PORT: 5672
+        SDK_RABBITMQ_VIRTUALHOST: omotes
+
+        TASK_RABBITMQ_USERNAME: ${RABBITMQ_CELERY_USER_NAME}
+        TASK_RABBITMQ_PASSWORD: ${RABBITMQ_CELERY_USER_PASSWORD}
+        TASK_RABBITMQ_HOSTNAME: rabbitmq-nwn
+        TASK_RABBITMQ_PORT: 5672
+        TASK_RABBITMQ_VIRTUALHOST: omotes_celery
+      depends_on:
+        rabbitmq:
+          condition: service_healthy
+  # simulator_worker:
+  #   build:
+  #     context: .
+  #   env_file: .env
+  #   networks:
+  #     - omotes
+  #   deploy:
+  #     replicas: 1
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     omotes_influxdb:
+  #       condition: service_healthy
 
   local_test:
     build:

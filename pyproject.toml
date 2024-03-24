@@ -21,7 +21,7 @@ classifiers = [
 dependencies = [
     "python-dotenv ~= 1.0.0",
     "coloredlogs==15.0.1",
-    "omotes-sdk-python ~= 0.0.5",
+    "omotes-sdk-python ~= 0.0.12",
 ]
 
 [project.optional-dependencies]
@@ -52,7 +52,7 @@ repository = "https://github.com/Nieuwe-Warmte-Nu/simulator-worker"
 changelog = "https://github.com/Nieuwe-Warmte-Nu/simulator-worker/blob/main/CHANGELOG.md"
 
 [project.scripts]
-simulator_worker = "simulator_worker:main"
+simulator_worker = "simulator_worker:start_app"
 
 [build-system]
 build-backend = "setuptools.build_meta"
