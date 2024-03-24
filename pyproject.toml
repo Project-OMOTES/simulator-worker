@@ -22,6 +22,8 @@ dependencies = [
     "python-dotenv ~= 1.0.0",
     "coloredlogs==15.0.1",
     "omotes-sdk-python ~= 0.0.12",
+    "omotes-simulator-core==0.0.7",
+    "pyesdl==24.2.0",
 ]
 
 [project.optional-dependencies]
