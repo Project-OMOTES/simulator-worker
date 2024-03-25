@@ -17,9 +17,15 @@
 import logging
 import os
 import traceback
+import uuid
+from datetime import datetime
 
 # from pathlib import Path
 from typing import Dict
+from uuid import uuid4
+
+# from simulator_worker.app_logging import LogLevel, setup_logging
+import dotenv
 
 # from app_logging import LogLevel, setup_logging
 # from celery.signals import after_setup_logger  # type: ignore
@@ -31,9 +37,9 @@ from simulator_core.entities.esdl_object import EsdlObject
 from simulator_core.entities.simulation_configuration import SimulationConfiguration
 from simulator_core.infrastructure.simulation_manager import SimulationManager
 from simulator_core.infrastructure.utils import pyesdl_from_string
+from utils import add_datetime_index, create_output_esdl
 
-# from simulator_worker.app_logging import LogLevel, setup_logging
-
+dotenv.load_dotenv()
 logger = logging.getLogger(__name__)
 
 # logger = logging.getLogger("simulator_worker")
@@ -54,21 +60,11 @@ def simulator_worker_task(
     :param update_progress_handler:
     :return: Simulated ESDL (no changes from input)
     """
-    # base_folder = Path(__file__).resolve().parent.parent
-    # write_result_db_profiles = "INFLUXDB_HOSTNAME" in os.environ
-    # influxdb_host = os.environ.get("INFLUXDB_HOSTNAME", "localhost")
-    # influxdb_port = int(os.environ.get("INFLUXDB_PORT", "8086"))
 
-    # logger.info(
-    #     f"Will write result profiles to database: {write_result_db_profiles}. "
-    #     f"At {influxdb_host}:{influxdb_port}"
-    # )
-
-    # logging.info(f"Simulator called with ESDL={input_esdl}, CONFIG={workflow_config}")
-    logging.info("Starting Simulator-core...")
+    logger.info("Starting Simulator-core...")
 
     config = SimulationConfiguration(
-        simulation_id=uuid.uuid1(),
+        simulation_id=uuid4(),
         name="test run",
         timestep=3600,
         start=datetime.strptime("2019-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S"),
@@ -76,15 +72,13 @@ def simulator_worker_task(
     )
     app = SimulationManager(EsdlObject(pyesdl_from_string(input_esdl)), config)
     result = app.execute()
-    results_timeseriesdb(result)
+    result_indexed = add_datetime_index(result, config.start, config.stop, config.timestep)
+    output_esdl = create_output_esdl(input_esdl, result_indexed)
 
-    output_esdl = input_esdl  # TODO update references in file
     # TODO
-    # add simulator-core
     # pass update_progress_handler(fraction: float, msg: str) to simulator-core
-    # catch return from simultor-core and chuck into DB?
 
-    return output_esdl  # simulator always returns the same ESDL as input
+    return output_esdl
 
 
 # @after_setup_logger.connect
