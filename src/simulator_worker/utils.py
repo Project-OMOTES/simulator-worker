@@ -66,7 +66,7 @@ def get_profileQuantityAndUnit(property_name: str):
     elif property_name.startswith("temperature"):
         return esdl.esdl.QuantityAndUnitType(
             physicalQuantity=esdl.PhysicalQuantityEnum.TEMPERATURE,
-            unit=esdl.UnitEnum.DEGREE_CELSIUS,
+            unit=esdl.UnitEnum.DEGREES_CELSIUS,
             multiplier=esdl.MultiplierEnum.NONE,
         )
     else:
@@ -85,6 +85,7 @@ def create_output_esdl(
     esh = pyesdl_from_string(input_esdl)
     input_uuid = str(esh.energy_system.id)  # store input_esdl UUID
     esh.energy_system.id = str(uuid.uuid4())
+    print(simulation_result.head())
 
     influxdb_host = os.getenv("INFLUXDB_HOSTNAME", "localhost")
     influxdb_port = os.getenv("INFLUXDB_PORT", "8086")
@@ -103,7 +104,7 @@ def create_output_esdl(
     profiles.profile_type = "DATETIME_LIST"
     profiles.profile_header = ["datetime"]
     for series_name, _ in simulation_result.items():
-        logger.debug(f"Output series: {series_name} shape={series.shape}")
+        logger.debug(f"Output series: {series_name}")
         asset = _id_to_asset(series_name[0], esh.energy_system)
         port_index = -1
         if series_name[1].endswith("supply"):
@@ -117,7 +118,7 @@ def create_output_esdl(
             database=input_uuid,
             measurement=series_name[0],
             field=profiles.profile_header[-1],
-            port=influxdb_port,
+            port=int(influxdb_port),
             host=influxdb_host,
             startDate=simulation_result.index[0],
             endDate=simulation_result.index[1],
@@ -145,7 +146,12 @@ if __name__ == "__main__":
         input_esdl = f.read()
 
     df = pd.read_pickle(r"./testdata/test1.pkl")
-
-    output_esdl = create_output_esdl(input_esdl=input_esdl, simulation_result=df)
+    result_indexed = add_datetime_index(
+        df,
+        datetime.strptime("2019-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S"),
+        datetime.strptime("2019-01-01T09:00:00", "%Y-%m-%dT%H:%M:%S"),
+        3600,
+    )
+    output_esdl = create_output_esdl(input_esdl=input_esdl, simulation_result=result_indexed)
     with open("./testdata/test1_output.esdl", "w") as output_esdl_file:
         output_esdl_file.write(output_esdl)
