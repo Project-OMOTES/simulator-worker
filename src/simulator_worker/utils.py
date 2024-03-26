@@ -43,7 +43,9 @@ def add_datetime_index(
     df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int
 ) -> pd.DataFrame:
     """Create new datetime column in df based on start and end time range."""
-    df["datetime"] = pd.date_range(start=starttime, end=endtime, freq=f"{timestep}S")
+    df["datetime"] = pd.date_range(
+        start=starttime, end=endtime, freq=f"{timestep}S", inclusive="left"
+    )
     df.set_index("datetime", inplace=True)
     return df
 
@@ -121,19 +123,19 @@ def create_output_esdl(
             port=int(influxdb_port),
             host=influxdb_host,
             startDate=simulation_result.index[0],
-            endDate=simulation_result.index[1],
+            endDate=simulation_result.index[-1],
             id=str(uuid.uuid4()),
         )
         profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(series_name[1])
-    for _, row in simulation_result.iterrows():
-        profiles.profile_data_list.append(row.values.tolist())
+    for index, row in simulation_result.iterrows():
+        profiles.profile_data_list.append([index, *row.values.tolist()])
     profiles.num_profile_items = len(profiles.profile_data_list)
     profiles.start_datetime = simulation_result.index[0]
     profiles.end_datetime = simulation_result.index[-1]
 
     influxdb_profile_manager = InfluxDBProfileManager(influxdb_conn_settings, profiles)
     influxdb_profile_manager.save_influxdb(
-        measurement=asset_name,
+        measurement=input_uuid,
         field_names=influxdb_profile_manager.profile_header[1:],
         tags={"output_esdl_id": esh.energy_system.id},
     )
@@ -149,7 +151,7 @@ if __name__ == "__main__":
     result_indexed = add_datetime_index(
         df,
         datetime.strptime("2019-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S"),
-        datetime.strptime("2019-01-01T09:00:00", "%Y-%m-%dT%H:%M:%S"),
+        datetime.strptime("2019-01-01T10:00:00", "%Y-%m-%dT%H:%M:%S"),
         3600,
     )
     output_esdl = create_output_esdl(input_esdl=input_esdl, simulation_result=result_indexed)
