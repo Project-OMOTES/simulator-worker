@@ -10,5 +10,4 @@ COPY .  /app/simulator_worker/
 COPY .git /app/simulator_worker/.git
 WORKDIR /app/simulator_worker
 RUN pip install .
-#RUN ls --recursive /app/simulator_worker/
 ENTRYPOINT simulator_worker
