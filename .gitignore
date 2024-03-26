@@ -222,4 +222,4 @@ unit_test_coverage/
 test-results.xml
 
 .env.*
-!.env.template
+!.env.template*
