@@ -37,7 +37,8 @@ from simulator_core.entities.esdl_object import EsdlObject
 from simulator_core.entities.simulation_configuration import SimulationConfiguration
 from simulator_core.infrastructure.simulation_manager import SimulationManager
 from simulator_core.infrastructure.utils import pyesdl_from_string
-from utils import add_datetime_index, create_output_esdl
+
+from simulator_worker.utils import add_datetime_index, create_output_esdl
 
 dotenv.load_dotenv()
 logger = logging.getLogger(__name__)
