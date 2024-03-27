@@ -64,6 +64,9 @@ def simulator_worker_task(
 
     logger.info("Starting Simulator-core...")
 
+    # TODO
+    # pass update_progress_handler(fraction: float, msg: str) to simulator-core
+
     config = SimulationConfiguration(
         simulation_id=uuid4(),
         name="test run",
@@ -73,12 +76,18 @@ def simulator_worker_task(
     )
     app = SimulationManager(EsdlObject(pyesdl_from_string(input_esdl)), config)
     result = app.execute()
+
+    if len(result.index) == 0:
+        logger.error("No simulation results found")
+        raise ValueError("No simulation results returned from simulator-core.")
+
     result_indexed = add_datetime_index(result, config.start, config.stop, config.timestep)
+    logger.info(
+        f"Simulation result: {len(result_indexed.index)} rows, "
+        "{len(result_indexed.columns)} columns "
+        "(shape={result_indexed.shape})"
+    )
     output_esdl = create_output_esdl(input_esdl, result_indexed)
-
-    # TODO
-    # pass update_progress_handler(fraction: float, msg: str) to simulator-core
-
     return output_esdl
 
 

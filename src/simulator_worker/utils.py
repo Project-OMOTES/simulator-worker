@@ -87,12 +87,15 @@ def create_output_esdl(
     esh = pyesdl_from_string(input_esdl)
     input_uuid = str(esh.energy_system.id)  # store input_esdl UUID
     esh.energy_system.id = str(uuid.uuid4())
-    print(simulation_result.head())
+    logger.info(f"Input ESDL UUID: {input_uuid}")
+    logger.info(f"Output ESDL UUID: {esh.energy_system.id}")
+    logger.debug(simulation_result.head())
 
     influxdb_host = os.getenv("INFLUXDB_HOSTNAME", "localhost")
     influxdb_port = os.getenv("INFLUXDB_PORT", "8086")
     influxdb_username = os.getenv("INFLUXDB_USERNAME", "testuser")
     influxdb_password = os.getenv("INFLUXDB_PASSWORD", "")
+    logger.debug(f"Connecting to InfluxDB: {influxdb_username}@{influxdb_host}:{influxdb_port}")
     influxdb_conn_settings = ConnectionSettings(
         host=influxdb_host,
         port=int(influxdb_port),
@@ -154,6 +157,7 @@ if __name__ == "__main__":
         datetime.strptime("2019-01-01T10:00:00", "%Y-%m-%dT%H:%M:%S"),
         3600,
     )
+    print(f"shape={result_indexed.shape}")
     output_esdl = create_output_esdl(input_esdl=input_esdl, simulation_result=result_indexed)
     with open("./testdata/test1_output.esdl", "w") as output_esdl_file:
         output_esdl_file.write(output_esdl)
