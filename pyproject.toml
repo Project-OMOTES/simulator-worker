@@ -24,6 +24,7 @@ dependencies = [
     "omotes-sdk-python ~= 0.0.12",
     "omotes-simulator-core==0.0.8",
     "pyesdl==24.2.0",
+    "pandas ~= 2.1.1"
 ]
 
 [project.optional-dependencies]
@@ -45,6 +46,7 @@ dev = [
     "mypy ~= 1.5.1",
     "isort==5.13.2",
     "build ~= 1.0.3",
+    "pandas-stubs ~= 2.1.1"
 ]
 
 [project.urls]

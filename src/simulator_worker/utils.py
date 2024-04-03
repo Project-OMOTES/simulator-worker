@@ -17,6 +17,7 @@ import logging
 import os
 import uuid
 from datetime import datetime
+from typing import cast
 
 import esdl
 import pandas as pd
@@ -31,12 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def _id_to_asset(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
-    return next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id))
-
-
-def get_port_index(asset: esdl.Asset, porttype) -> int:
-    """Get index of In/Out port of Esdl asset."""
-    return next(i for i, x in enumerate(asset.port) if isinstance(x, porttype))
+    return cast(esdl.Asset, next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id)))
 
 
 def add_datetime_index(
@@ -50,7 +46,7 @@ def add_datetime_index(
     return df
 
 
-def get_profileQuantityAndUnit(property_name: str):
+def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitType:
     """Get the profile quantity and unit."""
     if property_name.startswith("mass_flow"):
         return esdl.esdl.QuantityAndUnitType(
@@ -110,12 +106,6 @@ def create_output_esdl(
     profiles.profile_header = ["datetime"]
     for series_name, _ in simulation_result.items():
         logger.debug(f"Output series: {series_name}")
-        asset = _id_to_asset(series_name[0], esh.energy_system)
-        port_index = -1
-        if series_name[1].endswith("supply"):
-            port_index = get_port_index(asset, esdl.InPort)
-        else:
-            port_index = get_port_index(asset, esdl.OutPort)
         # print(f"{series_name}:\t\t {asset.port}")
         # print(f"Inport index={get_port_index(asset, esdl.InPort)}")
         profiles.profile_header.append(series_name[1])

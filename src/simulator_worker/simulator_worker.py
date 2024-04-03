@@ -15,24 +15,19 @@
 
 """Main python file for Simulator-worker."""
 import logging
-import os
+import math
 import traceback
-import uuid
 from datetime import datetime
-
-# from pathlib import Path
-from typing import Dict
 from uuid import uuid4
 
-# from simulator_worker.app_logging import LogLevel, setup_logging
 import dotenv
-
-# from app_logging import LogLevel, setup_logging
-# from celery.signals import after_setup_logger  # type: ignore
-from omotes_sdk.internal.worker.worker import (  # type: ignore
+from omotes_sdk.internal.worker.worker import (
     UpdateProgressHandler,
     initialize_worker,
 )
+from omotes_sdk.internal.worker.params_dict import parse_workflow_config_parameter
+from omotes_sdk.types import ParamsDict
+
 from simulator_core.entities.esdl_object import EsdlObject
 from simulator_core.entities.simulation_configuration import SimulationConfiguration
 from simulator_core.infrastructure.simulation_manager import SimulationManager
@@ -47,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 def simulator_worker_task(
-    input_esdl: str, workflow_config: Dict[str, str], update_progress_handler: UpdateProgressHandler
+        input_esdl: str, workflow_config: ParamsDict, update_progress_handler: UpdateProgressHandler
 ) -> str:
     """Simulator worker function for celery task.
 
@@ -56,23 +51,33 @@ def simulator_worker_task(
     it to be copied to subprocess. Any resources e.g. connections/sockets need to be opened
     in this task by the subprocess.
 
+    Expected contents of workflow_config:
+    - start_time_unix_s: int (float with .0), seconds since epoch
+    - end_time_unix_s: int (float with .0), seconds since epoch
+    - timestep_s: seconds
+
     :param input_esdl:
     :param workflow_config:
     :param update_progress_handler:
     :return: Simulated ESDL (no changes from input)
     """
-
     logger.info("Starting Simulator-core...")
 
     # TODO
     # pass update_progress_handler(fraction: float, msg: str) to simulator-core
 
+    timestep = parse_workflow_config_parameter(workflow_config, 'timestep_s', float, 3600.0)
+    start = parse_workflow_config_parameter(workflow_config, 'start_time_unix_s', float,
+                                            datetime.fromisoformat(
+                                                "2019-01-01T00:00:00").timestamp())
+    end = parse_workflow_config_parameter(workflow_config, 'end_time_unix_s', float,
+                                          datetime.fromisoformat("2019-01-01T01:00:00").timestamp())
     config = SimulationConfiguration(
         simulation_id=uuid4(),
         name="test run",
-        timestep=3600,
-        start=datetime.strptime("2019-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S"),
-        stop=datetime.strptime("2019-01-01T01:00:00", "%Y-%m-%dT%H:%M:%S"),
+        timestep=math.floor(timestep),
+        start=datetime.fromtimestamp(start),
+        stop=datetime.fromtimestamp(end),
     )
     app = SimulationManager(EsdlObject(pyesdl_from_string(input_esdl)), config)
     result = app.execute()
