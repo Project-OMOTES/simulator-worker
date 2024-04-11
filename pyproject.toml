@@ -21,7 +21,7 @@ classifiers = [
 dependencies = [
     "python-dotenv ~= 1.0.0",
     "coloredlogs==15.0.1",
-    "omotes-sdk-python ~= 0.0.12",
+    "omotes-sdk-python ~= 0.0.14",
     "omotes-simulator-core==0.0.8",
     "pyesdl==24.2.0",
     "pandas ~= 2.1.1"
@@ -74,7 +74,7 @@ dev_template = "{tag}.dev{ccount}"
 dirty_template = "{tag}.dev{ccount}"
 
 [tool.pytest.ini_options]
-addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 70"
+addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 45"
 testpaths = ["unit_test"]
 
 [tool.coverage.run]

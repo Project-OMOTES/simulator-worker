@@ -85,7 +85,7 @@ numpy==1.26.0
     #   shapely
 omotes-sdk-protocol==0.0.8
     # via omotes-sdk-python
-omotes-sdk-python==0.0.12
+omotes-sdk-python==0.0.14
     # via simulator-worker (pyproject.toml)
 omotes-simulator-core==0.0.8
     # via simulator-worker (pyproject.toml)

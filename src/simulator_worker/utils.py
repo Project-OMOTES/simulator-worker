@@ -32,11 +32,12 @@ logger = logging.getLogger(__name__)
 
 
 def _id_to_asset(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
-    return cast(esdl.Asset, next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id)))
+    return cast(esdl.Asset,
+                next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id)))
 
 
 def add_datetime_index(
-    df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int
+        df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int
 ) -> pd.DataFrame:
     """Create new datetime column in df based on start and end time range."""
     df["datetime"] = pd.date_range(
@@ -72,8 +73,8 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
 
 
 def create_output_esdl(
-    input_esdl: str,
-    simulation_result: pd.DataFrame,
+        input_esdl: str,
+        simulation_result: pd.DataFrame,
 ) -> str:
     """Prepare output esdl for simulator-worker.
 
@@ -130,7 +131,9 @@ def create_output_esdl(
     influxdb_profile_manager.save_influxdb(
         measurement=input_uuid,
         field_names=influxdb_profile_manager.profile_header[1:],
-        tags={"output_esdl_id": esh.energy_system.id},
+        tags={
+            "output_esdl_id": esh.energy_system.id
+        },
     )
     output_esdl = esh.to_string()
     return output_esdl
