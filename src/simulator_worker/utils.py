@@ -136,7 +136,7 @@ def create_output_esdl(
             "output_esdl_id": esh.energy_system.id
         },
     )
-    output_esdl = esh.to_string()
+    output_esdl = cast(str, esh.to_string())
     return output_esdl
 
 

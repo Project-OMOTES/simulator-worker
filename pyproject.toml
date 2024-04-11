@@ -112,3 +112,7 @@ exclude = ['.venv/*', 'venv/*', 'doc/*', 'ci/*']
 module = ["unit_test.*", "coloredlogs.*"]
 check_untyped_defs = true
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "esdl.*"
+ignore_missing_imports = true
