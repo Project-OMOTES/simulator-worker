@@ -109,10 +109,10 @@ def create_output_esdl(
         logger.debug(f"Output series: {series_name}")
         # print(f"{series_name}:\t\t {asset.port}")
         # print(f"Inport index={get_port_index(asset, esdl.InPort)}")
-        profiles.profile_header.append(series_name[1])
+        profiles.profile_header.append(series_name[1])  # type: ignore[index]
         profile_attributes = esdl.InfluxDBProfile(
             database=input_uuid,
-            measurement=series_name[0],
+            measurement=series_name[0],  # type: ignore[index]
             field=profiles.profile_header[-1],
             port=int(influxdb_port),
             host=influxdb_host,
@@ -120,7 +120,8 @@ def create_output_esdl(
             endDate=simulation_result.index[-1],
             id=str(uuid.uuid4()),
         )
-        profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(series_name[1])
+        profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(
+            series_name[1])  # type: ignore[index]
     for index, row in simulation_result.iterrows():
         profiles.profile_data_list.append([index, *row.values.tolist()])
     profiles.num_profile_items = len(profiles.profile_data_list)
