@@ -17,6 +17,7 @@ import logging
 import os
 import uuid
 from datetime import datetime
+from typing import cast
 
 import esdl
 import pandas as pd
@@ -31,16 +32,12 @@ logger = logging.getLogger(__name__)
 
 
 def _id_to_asset(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
-    return next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id))
-
-
-def get_port_index(asset: esdl.Asset, porttype) -> int:
-    """Get index of In/Out port of Esdl asset."""
-    return next(i for i, x in enumerate(asset.port) if isinstance(x, porttype))
+    return cast(esdl.Asset,
+                next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id)))
 
 
 def add_datetime_index(
-    df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int
+        df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int
 ) -> pd.DataFrame:
     """Create new datetime column in df based on start and end time range."""
     df["datetime"] = pd.date_range(
@@ -50,7 +47,7 @@ def add_datetime_index(
     return df
 
 
-def get_profileQuantityAndUnit(property_name: str):
+def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitType:
     """Get the profile quantity and unit."""
     if property_name.startswith("mass_flow"):
         return esdl.esdl.QuantityAndUnitType(
@@ -76,8 +73,8 @@ def get_profileQuantityAndUnit(property_name: str):
 
 
 def create_output_esdl(
-    input_esdl: str,
-    simulation_result: pd.DataFrame,
+        input_esdl: str,
+        simulation_result: pd.DataFrame,
 ) -> str:
     """Prepare output esdl for simulator-worker.
 
@@ -110,18 +107,12 @@ def create_output_esdl(
     profiles.profile_header = ["datetime"]
     for series_name, _ in simulation_result.items():
         logger.debug(f"Output series: {series_name}")
-        asset = _id_to_asset(series_name[0], esh.energy_system)
-        port_index = -1
-        if series_name[1].endswith("supply"):
-            port_index = get_port_index(asset, esdl.InPort)
-        else:
-            port_index = get_port_index(asset, esdl.OutPort)
         # print(f"{series_name}:\t\t {asset.port}")
         # print(f"Inport index={get_port_index(asset, esdl.InPort)}")
-        profiles.profile_header.append(series_name[1])
+        profiles.profile_header.append(series_name[1])  # type: ignore[index]
         profile_attributes = esdl.InfluxDBProfile(
             database=input_uuid,
-            measurement=series_name[0],
+            measurement=series_name[0],  # type: ignore[index]
             field=profiles.profile_header[-1],
             port=int(influxdb_port),
             host=influxdb_host,
@@ -129,7 +120,8 @@ def create_output_esdl(
             endDate=simulation_result.index[-1],
             id=str(uuid.uuid4()),
         )
-        profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(series_name[1])
+        profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(
+            series_name[1])  # type: ignore[index]
     for index, row in simulation_result.iterrows():
         profiles.profile_data_list.append([index, *row.values.tolist()])
     profiles.num_profile_items = len(profiles.profile_data_list)
@@ -140,9 +132,11 @@ def create_output_esdl(
     influxdb_profile_manager.save_influxdb(
         measurement=input_uuid,
         field_names=influxdb_profile_manager.profile_header[1:],
-        tags={"output_esdl_id": esh.energy_system.id},
+        tags={
+            "output_esdl_id": esh.energy_system.id
+        },
     )
-    output_esdl = esh.to_string()
+    output_esdl = cast(str, esh.to_string())
     return output_esdl
 
 
