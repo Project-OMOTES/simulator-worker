@@ -54,7 +54,7 @@ def simulator_worker_task(
     Expected contents of workflow_config:
     - start_time_unix_s: int (float with .0), seconds since epoch
     - end_time_unix_s: int (float with .0), seconds since epoch
-    - timestep_s: seconds
+    - timestep_s: int (float with .0) seconds
 
     :param input_esdl:
     :param workflow_config:
