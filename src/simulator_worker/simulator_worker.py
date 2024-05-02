@@ -21,13 +21,14 @@ from datetime import datetime
 from uuid import uuid4
 
 import dotenv
-from omotes_sdk.internal.worker.worker import (
-    UpdateProgressHandler,
-    initialize_worker,
-)
-from omotes_sdk.internal.worker.params_dict import parse_workflow_config_parameter
-from omotes_sdk.types import ParamsDict
 
+# Load env variables first, before importing omotes_sdk which defines it's own defaults
+# TODO  fix https://github.com/Project-OMOTES/omotes-sdk-python/issues/32,  then move this down
+dotenv.load_dotenv()
+
+from omotes_sdk.internal.worker.params_dict import parse_workflow_config_parameter
+from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
+from omotes_sdk.types import ParamsDict
 from simulator_core.entities.esdl_object import EsdlObject
 from simulator_core.entities.simulation_configuration import SimulationConfiguration
 from simulator_core.infrastructure.simulation_manager import SimulationManager
@@ -35,14 +36,13 @@ from simulator_core.infrastructure.utils import pyesdl_from_string
 
 from simulator_worker.utils import add_datetime_index, create_output_esdl
 
-dotenv.load_dotenv()
 logger = logging.getLogger(__name__)
 
 # logger = logging.getLogger("simulator_worker")
 
 
 def simulator_worker_task(
-        input_esdl: str, workflow_config: ParamsDict, update_progress_handler: UpdateProgressHandler
+    input_esdl: str, workflow_config: ParamsDict, update_progress_handler: UpdateProgressHandler
 ) -> str:
     """Simulator worker function for celery task.
 
@@ -66,14 +66,22 @@ def simulator_worker_task(
     # TODO
     # pass update_progress_handler(fraction: float, msg: str) to simulator-core
 
-    timestep = parse_workflow_config_parameter(workflow_config, 'timestep_s', float, 3600.0)
-    start = parse_workflow_config_parameter(workflow_config, 'start_time_unix_s', float,
-                                            datetime.fromisoformat(
-                                                "2019-01-01T00:00:00").timestamp())
-    end = parse_workflow_config_parameter(workflow_config, 'end_time_unix_s', float,
-                                          datetime.fromisoformat("2019-01-01T01:00:00").timestamp())
+    timestep = parse_workflow_config_parameter(workflow_config, "timestep_s", float, 3600.0)
+    start = parse_workflow_config_parameter(
+        workflow_config,
+        "start_time_unix_s",
+        float,
+        datetime.fromisoformat("2019-01-01T00:00:00").timestamp(),
+    )
+    end = parse_workflow_config_parameter(
+        workflow_config,
+        "end_time_unix_s",
+        float,
+        datetime.fromisoformat("2019-01-01T01:00:00").timestamp(),
+    )
+    simulation_id = uuid4()
     config = SimulationConfiguration(
-        simulation_id=uuid4(),
+        simulation_id=simulation_id,
         name="test run",
         timestep=math.floor(timestep),
         start=datetime.fromtimestamp(start),
@@ -93,6 +101,10 @@ def simulator_worker_task(
         "(shape={result_indexed.shape})"
     )
     output_esdl = create_output_esdl(input_esdl, result_indexed)
+
+    # Write output_esdl to file for debugging
+    # with open(f"result_{simulation_id}.esdl", "w") as file:
+    #     file.writelines(output_esdl)
     return output_esdl
 
 
