@@ -31,8 +31,15 @@ from simulator_core.infrastructure.utils import pyesdl_from_string
 logger = logging.getLogger(__name__)
 
 
-def get_port_index(asset: esdl.Asset, porttype: Type) -> int:
-    """Get index of In/Out port of Esdl asset."""
+def get_port_index(asset: esdl.Asset, porttype: Type[esdl.InPort | esdl.OutPort]) -> int:
+    """
+    Get the index of the port of the given type in the asset.
+
+    :param asset: The asset to search for the port in.
+    :param porttype: The type of port to search for.
+    :return index of the port of the given type in the asset.
+    :raises ValueError if the port is not found in the given asset.
+    """
     try:
         return next(i for i, x in enumerate(asset.port) if isinstance(x, porttype))
     except StopIteration:
@@ -40,7 +47,12 @@ def get_port_index(asset: esdl.Asset, porttype: Type) -> int:
 
 
 def _id_to_asset(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
-    """Finds the esdl asset for a given ID."""
+    """Finds the esdl asset for a given ID.
+
+    :param id: The ID of the asset to find.
+    :param energy_system: The energy system to search in.
+    :return: The asset with the given ID.
+    :raises ValueError: If the asset with the given ID is not found."""
     try:
         return cast(
             esdl.Asset,
@@ -53,7 +65,13 @@ def _id_to_asset(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
 def add_datetime_index(
     df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int
 ) -> pd.DataFrame:
-    """Create new datetime column in df based on start and end time range."""
+    """Create new datetime column in df based on start and end time range.
+
+    :param df: The dataframe to add the datetime index to.
+    :param starttime: The start time of the datetime index.
+    :param endtime: The end time of the datetime index.
+    :param timestep: The timestep of the datetime index.
+    :return: The dataframe with the datetime index added."""
     df["datetime"] = pd.date_range(
         start=starttime, end=endtime, freq=f"{timestep}S", inclusive="left"
     )
@@ -62,7 +80,10 @@ def add_datetime_index(
 
 
 def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitType:
-    """Get the profile quantity and unit."""
+    """Get the profile quantity and unit.
+
+    :param property_name: The name of the property to get the quantity and unit for.
+    :return: The quantity and unit for the given property name."""
     if property_name.startswith("mass_flow"):
         return esdl.esdl.QuantityAndUnitType(
             physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
@@ -94,6 +115,10 @@ def create_output_esdl(
 
     Takes an input ESDL string and a dataframe. Generates an updated ESDL
     file with references to the time series stored in the database
+
+    :param input_esdl: The input ESDL file as a string.
+    :param simulation_result: The simulation result as a DataFrame.
+    :return: The output ESDL file as a string.
     """
     esh = pyesdl_from_string(input_esdl)
     input_uuid = str(esh.energy_system.id)  # store input_esdl UUID
@@ -122,14 +147,13 @@ def create_output_esdl(
 
     for series_name, _ in simulation_result.items():
         logger.debug(f"Output series: {series_name}")
-        asset = _id_to_asset(series_name[0], esh.energy_system)
-        port_index = -1
-        if series_name[1].endswith("supply"):
+        asset = _id_to_asset(series_name[0], esh.energy_system)  # type: ignore[index]
+        if series_name[1].tolower().endswith("supply"):  # type: ignore[index]
             port_index = get_port_index(asset, esdl.InPort)
         else:
             port_index = get_port_index(asset, esdl.OutPort)
-        logger.debug(f"{series_name}:\t\t {asset.port}")
-        logger.debug(f"Inport index={get_port_index(asset, esdl.InPort)}")
+        logger.debug("{}:\t\t {}", series_name, asset.port)  # type: ignore
+        logger.debug("Port index={}", port_index)
         profiles.profile_header.append(series_name[1])  # type: ignore[index]
         profile_attributes = esdl.InfluxDBProfile(
             database=input_uuid,
@@ -142,8 +166,8 @@ def create_output_esdl(
             id=str(uuid.uuid4()),
         )
         profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(
-            series_name[1]
-        )  # type: ignore[index]
+            series_name[1]   # type: ignore[index]
+        )
         asset.port[port_index].profile.append(profile_attributes)
     for index, row in simulation_result.iterrows():
         profiles.profile_data_list.append([index, *row.values.tolist()])
