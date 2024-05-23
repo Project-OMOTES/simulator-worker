@@ -23,18 +23,20 @@ from uuid import uuid4
 import dotenv
 
 # Load env variables first, before importing omotes_sdk which defines it's own defaults
-# TODO  fix https://github.com/Project-OMOTES/omotes-sdk-python/issues/32,  then move this down
+# TODO  fix https://github.com/Project-OMOTES/omotes-sdk-python/issues/32,  then move this down.
+# also remove the #noqa directives from the imports below
 dotenv.load_dotenv()
+# end TODO
 
-from omotes_sdk.internal.worker.params_dict import parse_workflow_config_parameter
-from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
-from omotes_sdk.types import ParamsDict
-from simulator_core.entities.esdl_object import EsdlObject
-from simulator_core.entities.simulation_configuration import SimulationConfiguration
-from simulator_core.infrastructure.simulation_manager import SimulationManager
-from simulator_core.infrastructure.utils import pyesdl_from_string
+from omotes_sdk.internal.worker.params_dict import parse_workflow_config_parameter  # noqa: E402
+from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker  # noqa: E402
+from omotes_sdk.types import ParamsDict  # noqa: E402
+from simulator_core.entities.esdl_object import EsdlObject  # noqa: E402
+from simulator_core.entities.simulation_configuration import SimulationConfiguration  # noqa: E402
+from simulator_core.infrastructure.simulation_manager import SimulationManager  # noqa: E402
+from simulator_core.infrastructure.utils import pyesdl_from_string  # noqa: E402
 
-from simulator_worker.utils import add_datetime_index, create_output_esdl
+from simulator_worker.utils import add_datetime_index, create_output_esdl  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
