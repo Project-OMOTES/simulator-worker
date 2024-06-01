@@ -52,7 +52,8 @@ def _id_to_asset(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
     :param id: The ID of the asset to find.
     :param energy_system: The energy system to search in.
     :return: The asset with the given ID.
-    :raises ValueError: If the asset with the given ID is not found."""
+    :raises ValueError: If the asset with the given ID is not found.
+    """
     try:
         return cast(
             esdl.Asset,
@@ -71,7 +72,8 @@ def add_datetime_index(
     :param starttime: The start time of the datetime index.
     :param endtime: The end time of the datetime index.
     :param timestep: The timestep of the datetime index.
-    :return: The dataframe with the datetime index added."""
+    :return: The dataframe with the datetime index added.
+    """
     df["datetime"] = pd.date_range(
         start=starttime, end=endtime, freq=f"{timestep}S", inclusive="left"
     )
@@ -83,7 +85,8 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
     """Get the profile quantity and unit.
 
     :param property_name: The name of the property to get the quantity and unit for.
-    :return: The quantity and unit for the given property name."""
+    :return: The quantity and unit for the given property name.
+    """
     if property_name.startswith("mass_flow"):
         return esdl.esdl.QuantityAndUnitType(
             physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
