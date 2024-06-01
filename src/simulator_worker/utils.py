@@ -110,10 +110,7 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
         raise ValueError(f"Unknown property name: {property_name}")
 
 
-def create_output_esdl(
-    input_esdl: str,
-    simulation_result: pd.DataFrame,
-) -> str:
+def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     """Prepare output esdl for simulator-worker.
 
     Takes an input ESDL string and a dataframe. Generates an updated ESDL
