@@ -37,8 +37,8 @@ def get_port_index(asset: esdl.Asset, porttype: Type[esdl.InPort | esdl.OutPort]
 
     :param asset: The asset to search for the port in.
     :param porttype: The type of port to search for.
-    :return index of the port of the given type in the asset.
-    :raises ValueError if the port is not found in the given asset.
+    :return: Index of the port of the given type in the asset.
+    :raises ValueError: If the port is not found in the given asset.
     """
     try:
         return next(i for i, x in enumerate(asset.port) if isinstance(x, porttype))
@@ -126,15 +126,17 @@ def create_output_esdl(
     esh = pyesdl_from_string(input_esdl)
     input_uuid = str(esh.energy_system.id)  # store input_esdl UUID
     esh.energy_system.id = str(uuid.uuid4())
-    logger.info(f"Input ESDL UUID: {input_uuid}")
-    logger.info(f"Output ESDL UUID: {esh.energy_system.id}")
+    logger.info("Input ESDL UUID: {}", input_uuid)
+    logger.info("Output ESDL UUID: {}", esh.energy_system.id)
     logger.debug(simulation_result.head())
 
     influxdb_host = os.getenv("INFLUXDB_HOSTNAME", "localhost")
     influxdb_port = os.getenv("INFLUXDB_PORT", "8086")
     influxdb_username = os.getenv("INFLUXDB_USERNAME", "testuser")
     influxdb_password = os.getenv("INFLUXDB_PASSWORD", "")
-    logger.debug(f"Connecting to InfluxDB: {influxdb_username}@{influxdb_host}:{influxdb_port}")
+    logger.debug(
+        "Connecting to InfluxDB: {}@{}:{}", influxdb_username, influxdb_host, influxdb_port
+    )
     influxdb_conn_settings = ConnectionSettings(
         host=influxdb_host,
         port=int(influxdb_port),
@@ -149,7 +151,7 @@ def create_output_esdl(
     profiles.profile_header = ["datetime"]
 
     for series_name, _ in simulation_result.items():
-        logger.debug(f"Output series: {series_name}")
+        logger.debug("Output series: {}", series_name)
         asset = _id_to_asset(series_name[0], esh.energy_system)  # type: ignore[index]
         if series_name[1].tolower().endswith("supply"):  # type: ignore[index]
             port_index = get_port_index(asset, esdl.InPort)
@@ -169,7 +171,7 @@ def create_output_esdl(
             id=str(uuid.uuid4()),
         )
         profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(
-            series_name[1]   # type: ignore[index]
+            series_name[1]  # type: ignore[index]
         )
         asset.port[port_index].profile.append(profile_attributes)
     for index, row in simulation_result.iterrows():

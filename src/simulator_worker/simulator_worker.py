@@ -98,9 +98,10 @@ def simulator_worker_task(
 
     result_indexed = add_datetime_index(result, config.start, config.stop, config.timestep)
     logger.info(
-        f"Simulation result: {len(result_indexed.index)} rows, "
-        "{len(result_indexed.columns)} columns "
-        "(shape={result_indexed.shape})"
+        "Simulation result: {} rows, {} columns (shape={})",
+        len(result_indexed.index),
+        len(result_indexed.columns),
+        result_indexed.shape,
     )
     output_esdl = create_output_esdl(input_esdl, result_indexed)
 
@@ -135,7 +136,7 @@ def start_app(loglevel: str = "DEBUG", colors: bool = False) -> None:
     try:
         initialize_worker("simulator", simulator_worker_task)
     except Exception as error:
-        logger.error(f"Error occured: {error} at: {traceback.format_exc(limit=-1)}")
+        logger.error("Error occured: {} at: {}", error, traceback.format_exc(limit=-1))
         logger.debug(traceback.format_exc())
         raise error
 
