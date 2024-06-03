@@ -150,7 +150,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     for series_name, _ in simulation_result.items():
         logger.debug("Output series: {}", series_name)
         asset = _id_to_asset(series_name[0], esh.energy_system)  # type: ignore[index]
-        if series_name[1].tolower().endswith("supply"):  # type: ignore[index]
+        if series_name[1].lower().endswith("supply"):  # type: ignore[index]
             port_index = get_port_index(asset, esdl.InPort)
         else:
             port_index = get_port_index(asset, esdl.OutPort)
