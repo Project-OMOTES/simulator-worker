@@ -110,10 +110,7 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
         raise ValueError(f"Unknown property name: {property_name}")
 
 
-def create_output_esdl(
-    input_esdl: str,
-    simulation_result: pd.DataFrame,
-) -> str:
+def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     """Prepare output esdl for simulator-worker.
 
     Takes an input ESDL string and a dataframe. Generates an updated ESDL
@@ -153,7 +150,7 @@ def create_output_esdl(
     for series_name, _ in simulation_result.items():
         logger.debug("Output series: {}", series_name)
         asset = _id_to_asset(series_name[0], esh.energy_system)  # type: ignore[index]
-        if series_name[1].tolower().endswith("supply"):  # type: ignore[index]
+        if series_name[1].lower().endswith("supply"):  # type: ignore[index]
             port_index = get_port_index(asset, esdl.InPort)
         else:
             port_index = get_port_index(asset, esdl.OutPort)

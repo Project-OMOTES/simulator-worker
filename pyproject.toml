@@ -4,6 +4,7 @@ dynamic = ["version"]
 authors = [{ name = "Michiel Tukker", email = "michiel.tukker@deltares.nl" }]
 description = "Nieuwe Warmte Nu / OMOTES: simulator-worker."
 readme = "README.md"
+license = {file = "LICENSE"}
 classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
@@ -21,7 +22,7 @@ classifiers = [
 dependencies = [
     "python-dotenv ~= 1.0.0",
     "coloredlogs==15.0.1",
-    "omotes-sdk-python ~= 0.0.14",
+    "omotes-sdk-python ~= 0.0.15",
     "omotes-simulator-core==0.0.8",
     "pyesdl==24.2.0",
     "pandas ~= 2.1.1"
