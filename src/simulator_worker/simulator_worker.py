@@ -21,28 +21,30 @@ from datetime import datetime
 from uuid import uuid4
 
 import dotenv
-from omotes_sdk.internal.worker.worker import (
-    UpdateProgressHandler,
-    initialize_worker,
-)
-from omotes_sdk.internal.worker.params_dict import parse_workflow_config_parameter
-from omotes_sdk.types import ParamsDict
 
-from simulator_core.entities.esdl_object import EsdlObject
-from simulator_core.entities.simulation_configuration import SimulationConfiguration
-from simulator_core.infrastructure.simulation_manager import SimulationManager
-from simulator_core.infrastructure.utils import pyesdl_from_string
-
-from simulator_worker.utils import add_datetime_index, create_output_esdl
-
+# Load env variables first, before importing omotes_sdk which defines it's own defaults
+# TODO  fix https://github.com/Project-OMOTES/omotes-sdk-python/issues/32,  then move this down.
+# also remove the #noqa directives from the imports below
 dotenv.load_dotenv()
+# end TODO
+
+from omotes_sdk.internal.worker.params_dict import parse_workflow_config_parameter  # noqa: E402
+from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker  # noqa: E402
+from omotes_sdk.types import ParamsDict  # noqa: E402
+from simulator_core.entities.esdl_object import EsdlObject  # noqa: E402
+from simulator_core.entities.simulation_configuration import SimulationConfiguration  # noqa: E402
+from simulator_core.infrastructure.simulation_manager import SimulationManager  # noqa: E402
+from simulator_core.infrastructure.utils import pyesdl_from_string  # noqa: E402
+
+from simulator_worker.utils import add_datetime_index, create_output_esdl  # noqa: E402
+
 logger = logging.getLogger(__name__)
 
 # logger = logging.getLogger("simulator_worker")
 
 
 def simulator_worker_task(
-        input_esdl: str, workflow_config: ParamsDict, update_progress_handler: UpdateProgressHandler
+    input_esdl: str, workflow_config: ParamsDict, update_progress_handler: UpdateProgressHandler
 ) -> str:
     """Simulator worker function for celery task.
 
@@ -66,14 +68,22 @@ def simulator_worker_task(
     # TODO
     # pass update_progress_handler(fraction: float, msg: str) to simulator-core
 
-    timestep = parse_workflow_config_parameter(workflow_config, 'timestep_s', float, 3600.0)
-    start = parse_workflow_config_parameter(workflow_config, 'start_time_unix_s', float,
-                                            datetime.fromisoformat(
-                                                "2019-01-01T00:00:00").timestamp())
-    end = parse_workflow_config_parameter(workflow_config, 'end_time_unix_s', float,
-                                          datetime.fromisoformat("2019-01-01T01:00:00").timestamp())
+    timestep = parse_workflow_config_parameter(workflow_config, "timestep_s", float, 3600.0)
+    start = parse_workflow_config_parameter(
+        workflow_config,
+        "start_time_unix_s",
+        float,
+        datetime.fromisoformat("2019-01-01T00:00:00").timestamp(),
+    )
+    end = parse_workflow_config_parameter(
+        workflow_config,
+        "end_time_unix_s",
+        float,
+        datetime.fromisoformat("2019-01-01T01:00:00").timestamp(),
+    )
+    simulation_id = uuid4()
     config = SimulationConfiguration(
-        simulation_id=uuid4(),
+        simulation_id=simulation_id,
         name="test run",
         timestep=math.floor(timestep),
         start=datetime.fromtimestamp(start),
@@ -88,11 +98,16 @@ def simulator_worker_task(
 
     result_indexed = add_datetime_index(result, config.start, config.stop, config.timestep)
     logger.info(
-        f"Simulation result: {len(result_indexed.index)} rows, "
-        "{len(result_indexed.columns)} columns "
-        "(shape={result_indexed.shape})"
+        "Simulation result: {} rows, {} columns (shape={})",
+        len(result_indexed.index),
+        len(result_indexed.columns),
+        result_indexed.shape,
     )
     output_esdl = create_output_esdl(input_esdl, result_indexed)
+
+    # Write output_esdl to file for debugging
+    # with open(f"result_{simulation_id}.esdl", "w") as file:
+    #     file.writelines(output_esdl)
     return output_esdl
 
 
@@ -121,7 +136,7 @@ def start_app(loglevel: str = "DEBUG", colors: bool = False) -> None:
     try:
         initialize_worker("simulator", simulator_worker_task)
     except Exception as error:
-        logger.error(f"Error occured: {error} at: {traceback.format_exc(limit=-1)}")
+        logger.error("Error occured: {} at: {}", error, traceback.format_exc(limit=-1))
         logger.debug(traceback.format_exc())
         raise error
 
