@@ -204,7 +204,6 @@ packaging==24.0
     #   matplotlib
     #   pandapower
     #   pytest
-    #   setuptools-git-versioning
 pamqp==3.2.1
     # via
     #   -c requirements.txt
@@ -300,8 +299,6 @@ scipy==1.12.0
     # via
     #   -c requirements.txt
     #   pandapower
-setuptools-git-versioning==1.13.6
-    # via simulator-worker (pyproject.toml)
 shapely==2.0.3
     # via
     #   -c requirements.txt
