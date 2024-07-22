@@ -28,7 +28,7 @@ from esdl.profiles.influxdbprofilemanager import (
 from esdl.profiles.profilemanager import ProfileManager
 from simulator_core.infrastructure.utils import pyesdl_from_string
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("simulator_worker")
 
 
 def get_port_index(asset: esdl.Asset, porttype: Type[esdl.InPort | esdl.OutPort]) -> int:

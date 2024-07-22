@@ -14,4 +14,10 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """__init__.py file containing the defaults."""
+import os
+
+from omotes_sdk import setup_logging, LogLevel
+
 from simulator_worker.simulator_worker import start_app
+
+setup_logging(LogLevel.parse(os.environ.get("LOG_LEVEL", "INFO")), "simulator_worker")
