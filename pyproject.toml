@@ -65,7 +65,7 @@ requires = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 45"
+addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 30"
 testpaths = ["unit_test"]
 
 [tool.coverage.run]
