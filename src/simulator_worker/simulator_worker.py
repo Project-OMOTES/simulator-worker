@@ -104,7 +104,7 @@ def simulator_worker_task(
     return output_esdl
 
 
-def start_app(loglevel: str = "DEBUG", colors: bool = False) -> None:
+def start_app() -> None:
     """Design Toolkit Application application."""
     try:
         initialize_worker("simulator", simulator_worker_task)
@@ -115,4 +115,4 @@ def start_app(loglevel: str = "DEBUG", colors: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    start_app(loglevel="DEBUG", colors=True)
+    start_app()
