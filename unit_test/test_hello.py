@@ -16,8 +16,6 @@
 """Test script for python template."""
 import unittest
 
-import simulator_worker.simulator_worker
-
 
 class TestHelloWorld(unittest.TestCase):
     def test_hello_world(self) -> None:
