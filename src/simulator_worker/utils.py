@@ -71,7 +71,7 @@ def add_datetime_index(
     :param df: The dataframe to add the datetime index to.
     :param starttime: The start time of the datetime index.
     :param endtime: The end time of the datetime index.
-    :param timestep: The timestep of the datetime index.
+    :param timestep: The timestep of the datetime index in seconds.
     :return: The dataframe with the datetime index added.
     """
     df["datetime"] = pd.date_range(
