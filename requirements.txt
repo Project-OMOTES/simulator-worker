@@ -31,9 +31,7 @@ click-plugins==1.1.1
 click-repl==0.3.0
     # via celery
 coloredlogs==15.0.1
-    # via
-    #   omotes-simulator-core
-    #   simulator-worker (pyproject.toml)
+    # via omotes-simulator-core
 contourpy==1.2.0
     # via matplotlib
 cycler==0.12.1

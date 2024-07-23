@@ -67,7 +67,6 @@ coloredlogs==15.0.1
     # via
     #   -c requirements.txt
     #   omotes-simulator-core
-    #   simulator-worker (pyproject.toml)
 contourpy==1.2.0
     # via
     #   -c requirements.txt
