@@ -28,7 +28,7 @@ from esdl.profiles.influxdbprofilemanager import (
 from esdl.profiles.profilemanager import ProfileManager
 from simulator_core.infrastructure.utils import pyesdl_from_string
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("simulator_worker")
 
 
 def get_port_index(asset: esdl.Asset, porttype: Type[esdl.InPort | esdl.OutPort]) -> int:
@@ -71,7 +71,7 @@ def add_datetime_index(
     :param df: The dataframe to add the datetime index to.
     :param starttime: The start time of the datetime index.
     :param endtime: The end time of the datetime index.
-    :param timestep: The timestep of the datetime index.
+    :param timestep: The timestep of the datetime index in seconds.
     :return: The dataframe with the datetime index added.
     """
     df["datetime"] = pd.date_range(

@@ -33,9 +33,7 @@ from simulator_worker.utils import add_datetime_index, create_output_esdl
 
 dotenv.load_dotenv()
 
-logger = logging.getLogger(__name__)
-
-# logger = logging.getLogger("simulator_worker")
+logger = logging.getLogger("simulator_worker")
 
 
 def simulator_worker_task(
@@ -106,28 +104,8 @@ def simulator_worker_task(
     return output_esdl
 
 
-# @after_setup_logger.connect
-# def setup_loggers(
-#     logger: logging.Logger, loglevel: int, colorize: bool, format: str, **kwargs: str
-# ) -> None:
-#     """Event handler to setup logging."""
-#     setup_logging(
-#         log_level=LogLevel(loglevel),
-#         colors=colorize,
-#         format_string=format,
-#     )
-#     pass
-
-
-# @worker_shutting_down.connect
-# def shutdown(*args, **kwargs):
-#     print(args, kwargs)
-#     broker_if.stop()
-
-
-def start_app(loglevel: str = "DEBUG", colors: bool = False) -> None:
+def start_app() -> None:
     """Design Toolkit Application application."""
-    # setup_logging(LogLevel.parse(loglevel), colors)
     try:
         initialize_worker("simulator", simulator_worker_task)
     except Exception as error:
@@ -137,4 +115,4 @@ def start_app(loglevel: str = "DEBUG", colors: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    start_app(loglevel="DEBUG", colors=True)
+    start_app()

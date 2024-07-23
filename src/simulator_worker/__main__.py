@@ -16,4 +16,4 @@
 """__main__.py file for testing/running application."""
 from simulator_worker import start_app
 
-start_app(loglevel="DEBUG", colors=False)
+start_app()
