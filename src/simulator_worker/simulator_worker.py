@@ -94,7 +94,7 @@ def simulator_worker_task(
 
     result_indexed = add_datetime_index(result, config.start, config.stop, config.timestep)
     logger.info(
-        "Simulation result: {} rows, {} columns (shape={})",
+        "Simulation result: %s rows, %s columns (shape=%s)",
         len(result_indexed.index),
         len(result_indexed.columns),
         result_indexed.shape,
@@ -112,7 +112,7 @@ def start_app() -> None:
     try:
         initialize_worker("simulator", simulator_worker_task)
     except Exception as error:
-        logger.error("Error occured: {} at: {}", error, traceback.format_exc(limit=-1))
+        logger.error("Error occured: %s at: %s", error, traceback.format_exc(limit=-1))
         logger.debug(traceback.format_exc())
         raise error
 

@@ -123,8 +123,8 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     esh = pyesdl_from_string(input_esdl)
     input_uuid = str(esh.energy_system.id)  # store input_esdl UUID
     esh.energy_system.id = str(uuid.uuid4())
-    logger.info("Input ESDL UUID: {}", input_uuid)
-    logger.info("Output ESDL UUID: {}", esh.energy_system.id)
+    logger.info("Input ESDL UUID: %s", input_uuid)
+    logger.info("Output ESDL UUID: %s", esh.energy_system.id)
     logger.debug(simulation_result.head())
 
     influxdb_host = os.getenv("INFLUXDB_HOSTNAME", "localhost")
@@ -132,7 +132,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     influxdb_username = os.getenv("INFLUXDB_USERNAME", "testuser")
     influxdb_password = os.getenv("INFLUXDB_PASSWORD", "")
     logger.debug(
-        "Connecting to InfluxDB: {}@{}:{}", influxdb_username, influxdb_host, influxdb_port
+        "Connecting to InfluxDB: %s@%s:%s", influxdb_username, influxdb_host, influxdb_port
     )
     influxdb_conn_settings = ConnectionSettings(
         host=influxdb_host,
@@ -148,14 +148,14 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     profiles.profile_header = ["datetime"]
 
     for series_name, _ in simulation_result.items():
-        logger.debug("Output series: {}", series_name)
+        logger.debug("Output series: %s", series_name)
         asset = _id_to_asset(series_name[0], esh.energy_system)  # type: ignore[index]
         if series_name[1].lower().endswith("supply"):  # type: ignore[index]
             port_index = get_port_index(asset, esdl.InPort)
         else:
             port_index = get_port_index(asset, esdl.OutPort)
-        logger.debug("{}:\t\t {}", series_name, asset.port)  # type: ignore
-        logger.debug("Port index={}", port_index)
+        logger.debug("%s:\t\t %s", series_name, asset.port)  # type: ignore
+        logger.debug("Port index=%s", port_index)
         profiles.profile_header.append(series_name[1])  # type: ignore[index]
         profile_attributes = esdl.InfluxDBProfile(
             database=input_uuid,
