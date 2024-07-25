@@ -4,11 +4,11 @@
 #
 #    pip-compile --constraint=requirements.txt --extra=dev --output-file=dev-requirements.txt pyproject.toml
 #
-aio-pika==9.3.1
+aio-pika==9.4.2
     # via
     #   -c requirements.txt
     #   omotes-sdk-python
-aiormq==6.7.7
+aiormq==6.8.0
     # via
     #   -c requirements.txt
     #   aio-pika
@@ -67,7 +67,6 @@ coloredlogs==15.0.1
     # via
     #   -c requirements.txt
     #   omotes-simulator-core
-    #   simulator-worker (pyproject.toml)
 contourpy==1.2.0
     # via
     #   -c requirements.txt
@@ -180,11 +179,11 @@ numpy==1.26.0
     #   pandas-stubs
     #   scipy
     #   shapely
-omotes-sdk-protocol==0.0.8
+omotes-sdk-protocol==0.1.1
     # via
     #   -c requirements.txt
     #   omotes-sdk-python
-omotes-sdk-python==0.0.16
+omotes-sdk-python==2.0.2
     # via
     #   -c requirements.txt
     #   simulator-worker (pyproject.toml)
@@ -204,7 +203,7 @@ packaging==24.0
     #   matplotlib
     #   pandapower
     #   pytest
-pamqp==3.2.1
+pamqp==3.3.0
     # via
     #   -c requirements.txt
     #   aiormq
@@ -311,6 +310,10 @@ six==1.16.0
     #   python-dateutil
 snowballstemmer==2.2.0
     # via pydocstyle
+streamcapture==1.2.4
+    # via
+    #   -c requirements.txt
+    #   omotes-sdk-python
 tomli==2.0.1
     # via black
 tqdm==4.66.2
@@ -319,8 +322,11 @@ tqdm==4.66.2
     #   pandapower
 types-pytz==2024.1.0.20240203
     # via pandas-stubs
-typing-extensions==4.9.0
-    # via mypy
+typing-extensions==4.11.0
+    # via
+    #   -c requirements.txt
+    #   mypy
+    #   omotes-sdk-python
 tzdata==2024.1
     # via
     #   -c requirements.txt

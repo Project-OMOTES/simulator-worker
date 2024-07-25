@@ -17,7 +17,7 @@
 import logging
 import math
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 import dotenv
@@ -61,26 +61,29 @@ def simulator_worker_task(
     # TODO
     # pass update_progress_handler(fraction: float, msg: str) to simulator-core
 
-    timestep = parse_workflow_config_parameter(workflow_config, "timestep_s", float, 3600.0)
-    start = parse_workflow_config_parameter(
-        workflow_config,
-        "start_time_unix_s",
-        float,
-        datetime.fromisoformat("2019-01-01T00:00:00").timestamp(),
+    timestep: timedelta = parse_workflow_config_parameter(
+        workflow_config, "timestep", timedelta, timedelta(hours=1)
     )
-    end = parse_workflow_config_parameter(
+    start: datetime = parse_workflow_config_parameter(
         workflow_config,
-        "end_time_unix_s",
-        float,
-        datetime.fromisoformat("2019-01-01T01:00:00").timestamp(),
+        "start_time",
+        datetime,
+        datetime.fromisoformat("2019-01-01T00:00:00"),
     )
+    end: datetime = parse_workflow_config_parameter(
+        workflow_config,
+        "end_time",
+        datetime,
+        datetime.fromisoformat("2019-01-01T01:00:00"),
+    )
+
     simulation_id = uuid4()
     config = SimulationConfiguration(
         simulation_id=simulation_id,
         name="test run",
-        timestep=math.floor(timestep),
-        start=datetime.fromtimestamp(start),
-        stop=datetime.fromtimestamp(end),
+        timestep=math.floor(timestep.total_seconds()),
+        start=start,
+        stop=end,
     )
     app = SimulationManager(EsdlObject(pyesdl_from_string(input_esdl)), config)
     result = app.execute()
@@ -91,7 +94,7 @@ def simulator_worker_task(
 
     result_indexed = add_datetime_index(result, config.start, config.stop, config.timestep)
     logger.info(
-        "Simulation result: {} rows, {} columns (shape={})",
+        "Simulation result: %s rows, %s columns (shape=%s)",
         len(result_indexed.index),
         len(result_indexed.columns),
         result_indexed.shape,
@@ -109,7 +112,7 @@ def start_app() -> None:
     try:
         initialize_worker("simulator", simulator_worker_task)
     except Exception as error:
-        logger.error("Error occured: {} at: {}", error, traceback.format_exc(limit=-1))
+        logger.error("Error occured: %s at: %s", error, traceback.format_exc(limit=-1))
         logger.debug(traceback.format_exc())
         raise error
 
