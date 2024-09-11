@@ -21,7 +21,7 @@ classifiers = [
 
 dependencies = [
     "python-dotenv ~= 1.0.0",
-    "omotes-sdk-python ~= 2.0.2",
+    "omotes-sdk-python ~= 3.1.0",
     "omotes-simulator-core==0.0.8",
     "pyesdl==24.2.0",
     "pandas ~= 2.1.1"
