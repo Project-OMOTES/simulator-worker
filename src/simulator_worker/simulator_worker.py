@@ -21,9 +21,13 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import dotenv
-from omotes_sdk.internal.worker.params_dict import parse_workflow_config_parameter
+from omotes_sdk.workflow_type import (
+    parse_workflow_config_parameter,
+    DateTimeParameter,
+    DurationParameter,
+)
 from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
-from omotes_sdk.types import ParamsDict
+from omotes_sdk.types import ProtobufDict
 from simulator_core.entities.esdl_object import EsdlObject
 from simulator_core.entities.simulation_configuration import SimulationConfiguration
 from simulator_core.infrastructure.simulation_manager import SimulationManager
@@ -37,7 +41,7 @@ logger = logging.getLogger("simulator_worker")
 
 
 def simulator_worker_task(
-    input_esdl: str, workflow_config: ParamsDict, update_progress_handler: UpdateProgressHandler
+    input_esdl: str, workflow_config: ProtobufDict, update_progress_handler: UpdateProgressHandler
 ) -> str:
     """Simulator worker function for celery task.
 
@@ -62,19 +66,19 @@ def simulator_worker_task(
     # pass update_progress_handler(fraction: float, msg: str) to simulator-core
 
     timestep: timedelta = parse_workflow_config_parameter(
-        workflow_config, "timestep", timedelta, timedelta(hours=1)
+        workflow_config, "timestep", DurationParameter, timedelta(hours=1)
     )
     start: datetime = parse_workflow_config_parameter(
         workflow_config,
         "start_time",
-        datetime,
-        datetime.fromisoformat("2019-01-01T00:00:00"),
+        DateTimeParameter,
+        datetime.fromisoformat("2019-01-01T00:00:00+00:00"),
     )
     end: datetime = parse_workflow_config_parameter(
         workflow_config,
         "end_time",
-        datetime,
-        datetime.fromisoformat("2019-01-01T01:00:00"),
+        DateTimeParameter,
+        datetime.fromisoformat("2019-01-01T01:00:00+00:00"),
     )
 
     simulation_id = uuid4()
