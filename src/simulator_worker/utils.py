@@ -123,8 +123,9 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     esh = pyesdl_from_string(input_esdl)
     input_uuid = str(esh.energy_system.id)  # store input_esdl UUID
     esh.energy_system.id = str(uuid.uuid4())
+    output_uuid = esh.energy_system.id
     logger.info("Input ESDL UUID: %s", input_uuid)
-    logger.info("Output ESDL UUID: %s", esh.energy_system.id)
+    logger.info("Output ESDL UUID: %s", output_uuid)
     logger.debug(simulation_result.head())
 
     influxdb_host = os.getenv("INFLUXDB_HOSTNAME", "localhost")
@@ -139,50 +140,91 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         port=int(influxdb_port),
         username=influxdb_username,
         password=influxdb_password,
-        database=input_uuid,
+        database=output_uuid,
         ssl=False,
         verify_ssl=False,
     )
-    profiles = ProfileManager()
-    profiles.profile_type = "DATETIME_LIST"
-    profiles.profile_header = ["datetime"]
+
+    series_per_asset_id_per_carrier_id = {}
 
     for series_name, _ in simulation_result.items():
+        asset_id = series_name[0]
+        profile_name = series_name[1]
         logger.debug("Output series: %s", series_name)
-        asset = _id_to_asset(series_name[0], esh.energy_system)  # type: ignore[index]
-        if series_name[1].lower().endswith("supply"):  # type: ignore[index]
+        asset = _id_to_asset(asset_id, esh.energy_system)  # type: ignore[index]
+        if profile_name.lower().endswith("supply"):  # type: ignore[index]
             port_index = get_port_index(asset, esdl.InPort)
         else:
             port_index = get_port_index(asset, esdl.OutPort)
         logger.debug("%s:\t\t %s", series_name, asset.port)  # type: ignore
         logger.debug("Port index=%s", port_index)
-        profiles.profile_header.append(series_name[1])  # type: ignore[index]
-        profile_attributes = esdl.InfluxDBProfile(
-            database=input_uuid,
-            measurement=series_name[0],  # type: ignore[index]
-            field=profiles.profile_header[-1],
-            port=int(influxdb_port),
-            host=influxdb_host,
-            startDate=simulation_result.index[0],
-            endDate=simulation_result.index[-1],
-            id=str(uuid.uuid4()),
-        )
-        profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(
-            series_name[1]  # type: ignore[index]
-        )
-        asset.port[port_index].profile.append(profile_attributes)
-    for index, row in simulation_result.iterrows():
-        profiles.profile_data_list.append([index, *row.values.tolist()])
-    profiles.num_profile_items = len(profiles.profile_data_list)
-    profiles.start_datetime = simulation_result.index[0]
-    profiles.end_datetime = simulation_result.index[-1]
+        port: esdl.Port = asset.port[port_index]
+        carrier: esdl.Carrier = port.carrier
 
-    influxdb_profile_manager = InfluxDBProfileManager(influxdb_conn_settings, profiles)
-    influxdb_profile_manager.save_influxdb(
-        measurement=input_uuid,
-        field_names=influxdb_profile_manager.profile_header[1:],
-        tags={"output_esdl_id": esh.energy_system.id},
-    )
+        series_per_asset_id_for_carrier = series_per_asset_id_per_carrier_id.setdefault(
+            carrier.id, {}
+        )
+        series_for_asset_id_for_carrier = series_per_asset_id_for_carrier.setdefault(asset_id, [])
+        series_for_asset_id_for_carrier.append((series_name, port))
+
+    capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
+    for carrier_id in series_per_asset_id_per_carrier_id:
+        for asset_id in series_per_asset_id_per_carrier_id[carrier_id]:
+            asset = _id_to_asset(asset_id, esh.energy_system)
+            maybe_asset_capability = next(
+                (c for c in capabilities if c in asset.__class__.__mro__), None
+            )
+            asset_capability = maybe_asset_capability.__name__ if maybe_asset_capability else "None"
+            profiles = ProfileManager()
+            profiles.profile_type = "DATETIME_LIST"
+            profiles.profile_header = ["datetime"]
+
+            for series_name, port in series_per_asset_id_per_carrier_id[carrier_id][asset_id]:
+                # Add profile to esdl
+                profile_name = series_name[1]
+
+                profiles.profile_header.append(profile_name)  # type: ignore[index]
+                profile_attributes = esdl.InfluxDBProfile(
+                    database=output_uuid,
+                    measurement=carrier_id,  # series_name[0],  # type: ignore[index]
+                    field=profile_name,
+                    port=int(influxdb_port),
+                    host=influxdb_host,
+                    startDate=simulation_result.index[0],
+                    endDate=simulation_result.index[-1],
+                    id=str(uuid.uuid4()),
+                )
+
+                profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(
+                    series_name[1]  # type: ignore[index]
+                )
+                port.profile.append(profile_attributes)
+
+            for index, row in simulation_result.loc[
+                :,
+                [
+                    series_name
+                    for series_name, _ in series_per_asset_id_per_carrier_id[carrier_id][asset_id]
+                ],
+            ].iterrows():
+                profiles.profile_data_list.append([index, *row.values.tolist()])
+            profiles.num_profile_items = len(profiles.profile_data_list)
+            profiles.start_datetime = simulation_result.index[0]
+            profiles.end_datetime = simulation_result.index[-1]
+
+            influxdb_profile_manager = InfluxDBProfileManager(influxdb_conn_settings, profiles)
+            influxdb_profile_manager.save_influxdb(
+                measurement=carrier_id,
+                field_names=influxdb_profile_manager.profile_header[1:],
+                tags={
+                    "assetClass": asset.__class__.__name__,
+                    "assetId": asset_id,
+                    "assetName": asset.name,
+                    "capability": asset_capability,
+                    "simulationRun": output_uuid,
+                    "simulation_type": "omotes-simulator",
+                },
+            )
     output_esdl = cast(str, esh.to_string())
     return output_esdl
 
