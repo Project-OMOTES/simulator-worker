@@ -17,7 +17,7 @@ import logging
 import os
 import uuid
 from datetime import datetime
-from typing import Type, cast
+from typing import Type, cast, Tuple, Dict, List
 
 import esdl
 import pandas as pd
@@ -145,18 +145,20 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         verify_ssl=False,
     )
 
-    series_per_asset_id_per_carrier_id = {}
+    series_per_asset_id_per_carrier_id: Dict[str, Dict[str, List[Tuple[Tuple[str, str], int]]]] = {}
 
-    for series_name, _ in simulation_result.items():
+    series_name: Tuple[str, str]
+    for series_name_uncasted, _ in simulation_result.items():
+        series_name = cast(Tuple[str, str], series_name_uncasted)
         asset_id = series_name[0]
         profile_name = series_name[1]
         logger.debug("Output series: %s", series_name)
-        asset = _id_to_asset(asset_id, esh.energy_system)  # type: ignore[index]
-        if profile_name.lower().endswith("supply"):  # type: ignore[index]
+        asset = _id_to_asset(asset_id, esh.energy_system)
+        if profile_name.lower().endswith("supply"):
             port_index = get_port_index(asset, esdl.InPort)
         else:
             port_index = get_port_index(asset, esdl.OutPort)
-        logger.debug("%s:\t\t %s", series_name, asset.port)  # type: ignore
+        logger.debug("%s:\t\t %s", series_name, asset.port)
         logger.debug("Port index=%s", port_index)
         port: esdl.Port = asset.port[port_index]
         carrier: esdl.Carrier = port.carrier
@@ -183,10 +185,10 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                 # Add profile to esdl
                 profile_name = series_name[1]
 
-                profiles.profile_header.append(profile_name)  # type: ignore[index]
+                profiles.profile_header.append(profile_name)
                 profile_attributes = esdl.InfluxDBProfile(
                     database=output_uuid,
-                    measurement=carrier_id,  # series_name[0],  # type: ignore[index]
+                    measurement=carrier_id,
                     field=profile_name,
                     port=int(influxdb_port),
                     host=influxdb_host,
@@ -195,9 +197,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                     id=str(uuid.uuid4()),
                 )
 
-                profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(
-                    series_name[1]  # type: ignore[index]
-                )
+                profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(profile_name)
                 port.profile.append(profile_attributes)
 
             for index, row in simulation_result.loc[
