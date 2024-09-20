@@ -145,7 +145,9 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         verify_ssl=False,
     )
 
-    series_per_asset_id_per_carrier_id: Dict[str, Dict[str, List[Tuple[Tuple[str, str], int]]]] = {}
+    series_per_asset_id_per_carrier_id: Dict[
+        str, Dict[str, List[Tuple[Tuple[str, str], esdl.Port]]]
+    ] = {}
 
     series_name: Tuple[str, str]
     for series_name_uncasted, _ in simulation_result.items():
