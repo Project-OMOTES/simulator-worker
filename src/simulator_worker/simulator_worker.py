@@ -55,10 +55,11 @@ def simulator_worker_task(
     - end_time_unix_s: int (float with .0), seconds since epoch
     - timestep_s: int (float with .0) seconds
 
-    :param input_esdl:
-    :param workflow_config:
-    :param update_progress_handler:
-    :return: Simulated ESDL (no changes from input)
+    :param input_esdl: The input ESDL XML string.
+    :param workflow_config: Extra parameters to configure this run.
+    :param update_progress_handler: Handler to notify of any progress changes.
+    :return: Simulated ESDL with simulation result profiles added to input ESDL but no other
+        changes.
     """
     logger.info("Starting Simulator-core...")
 

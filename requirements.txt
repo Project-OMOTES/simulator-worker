@@ -75,9 +75,9 @@ numpy==1.26.0
     #   pandas
     #   scipy
     #   shapely
-omotes-sdk-protocol==0.1.5
+omotes-sdk-protocol==0.1.6
     # via omotes-sdk-python
-omotes-sdk-python==3.1.2
+omotes-sdk-python==3.2.2
     # via simulator-worker (pyproject.toml)
 omotes-simulator-core==0.0.8
     # via simulator-worker (pyproject.toml)
@@ -112,6 +112,7 @@ pyecore==0.12.1
     # via pyesdl
 pyesdl==24.2
     # via
+    #   omotes-sdk-python
     #   omotes-simulator-core
     #   simulator-worker (pyproject.toml)
 pyparsing==3.1.2
