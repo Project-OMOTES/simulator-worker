@@ -59,7 +59,7 @@ omotes-sdk-protocol==0.1.6
     # via omotes-sdk-python
 omotes-sdk-python==3.2.3
     # via simulator-worker (pyproject.toml)
-omotes-simulator-core==0.0.10
+omotes-simulator-core==0.0.11
     # via simulator-worker (pyproject.toml)
 ordered-set==4.1.0
     # via pyecore
