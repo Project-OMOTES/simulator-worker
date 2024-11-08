@@ -40,4 +40,4 @@ class TestHelloWorld(unittest.TestCase):
         )
 
         # Assert
-        self.assertEquals(len(result_df), 2)
+        self.assertEqual(len(result_df), 2)
