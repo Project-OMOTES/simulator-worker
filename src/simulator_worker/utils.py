@@ -63,6 +63,23 @@ def _id_to_asset(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
         raise ValueError(f"{id} does not exist in this energy system")
 
 
+def find_asset_from_port(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
+    """Finds the esdl asset for a given port id.
+
+    :param id: The ID of the asset to find.
+    :param energy_system: The energy system to search in.
+    :return: The asset ID that owns the given port.
+    :raises ValueError: If the asset with the given ID is not found.
+    """
+    for asset in energy_system.eAllContents():
+        if not isinstance(asset, esdl.Asset):
+            continue
+        for port in asset.port:
+            if port.id == id:
+                return asset
+    raise ValueError(f"port {id} does not exist in this energy system")
+
+
 def add_datetime_index(
     df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int
 ) -> pd.DataFrame:
@@ -152,10 +169,11 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     series_name: Tuple[str, str]
     for series_name_uncasted, _ in simulation_result.items():
         series_name = cast(Tuple[str, str], series_name_uncasted)
-        asset_id = series_name[0]
+        port_id = series_name[0]
         profile_name = series_name[1]
         logger.debug("Output series: %s", series_name)
-        asset = _id_to_asset(asset_id, esh.energy_system)
+        asset = find_asset_from_port(port_id, esh.energy_system)
+        asset_id = asset.id
         if profile_name.lower().endswith("supply"):
             port_index = get_port_index(asset, esdl.InPort)
         else:
