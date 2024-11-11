@@ -21,10 +21,10 @@ classifiers = [
 
 dependencies = [
     "python-dotenv ~= 1.0.0",
-    "omotes-sdk-python ~= 3.2.2",
-    "omotes-simulator-core==0.0.8",
+    "omotes-sdk-python ~= 3.2.3",
+    "omotes-simulator-core==0.0.11",
     "pyesdl==24.2.0",
-    "pandas ~= 2.1.1"
+    "pandas ~= 2.2.2"
 ]
 
 [project.optional-dependencies]
@@ -63,6 +63,12 @@ requires = [
     "setuptools ~= 69.1.0",
     "wheel ~= 0.42.0",
 ]
+
+[tool.setuptools-git-versioning]
+enabled = true
+starting_version = "0.0.13"
+dev_template = "{tag}.dev{ccount}"
+dirty_template = "{tag}.dev{ccount}"
 
 [tool.pytest.ini_options]
 addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 30"

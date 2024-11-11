@@ -21,17 +21,19 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import dotenv
-from omotes_sdk.workflow_type import (
-    parse_workflow_config_parameter,
-    DateTimeParameter,
-    DurationParameter,
-)
 from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
 from omotes_sdk.types import ProtobufDict
-from simulator_core.entities.esdl_object import EsdlObject
-from simulator_core.entities.simulation_configuration import SimulationConfiguration
-from simulator_core.infrastructure.simulation_manager import SimulationManager
-from simulator_core.infrastructure.utils import pyesdl_from_string
+from omotes_sdk.workflow_type import (
+    DateTimeParameter,
+    DurationParameter,
+    parse_workflow_config_parameter,
+)
+from omotes_simulator_core.entities.esdl_object import EsdlObject
+from omotes_simulator_core.entities.simulation_configuration import (
+    SimulationConfiguration,
+)
+from omotes_simulator_core.infrastructure.simulation_manager import SimulationManager
+from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 
 from simulator_worker.utils import add_datetime_index, create_output_esdl
 
@@ -91,7 +93,7 @@ def simulator_worker_task(
         stop=end,
     )
     app = SimulationManager(EsdlObject(pyesdl_from_string(input_esdl)), config)
-    result = app.execute()
+    result = app.execute(update_progress_handler)
 
     if len(result.index) == 0:
         logger.error("No simulation results found")

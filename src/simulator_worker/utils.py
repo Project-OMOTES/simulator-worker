@@ -17,7 +17,7 @@ import logging
 import os
 import uuid
 from datetime import datetime
-from typing import Type, cast, Tuple, Dict, List
+from typing import Dict, List, Tuple, Type, cast
 
 import esdl
 import pandas as pd
@@ -26,7 +26,7 @@ from esdl.profiles.influxdbprofilemanager import (
     InfluxDBProfileManager,
 )
 from esdl.profiles.profilemanager import ProfileManager
-from simulator_core.infrastructure.utils import pyesdl_from_string
+from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 
 logger = logging.getLogger("simulator_worker")
 
