@@ -17,7 +17,7 @@ import logging
 import os
 import uuid
 from datetime import datetime
-from typing import Dict, List, Tuple, Type, cast
+from typing import Dict, List, Tuple, Type, TypeVar, cast
 
 import esdl
 import pandas as pd
@@ -30,37 +30,40 @@ from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 
 logger = logging.getLogger("simulator_worker")
 
-
-def get_port_index(asset: esdl.Asset, porttype: Type[esdl.InPort | esdl.OutPort]) -> int:
-    """
-    Get the index of the port of the given type in the asset.
-
-    :param asset: The asset to search for the port in.
-    :param porttype: The type of port to search for.
-    :return: Index of the port of the given type in the asset.
-    :raises ValueError: If the port is not found in the given asset.
-    """
-    try:
-        return next(i for i, x in enumerate(asset.port) if isinstance(x, porttype))
-    except StopIteration:
-        raise ValueError(f"{porttype} was not found")
+T = TypeVar("T")
 
 
-def _id_to_asset(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
-    """Finds the esdl asset for a given ID.
+def id_to_esdl_item(id: str, energy_system: esdl.EnergySystem, item_type: Type[T]) -> T:
+    """Finds the esdl item for a given ID. This method currently only supports Assets and Ports.
 
     :param id: The ID of the asset to find.
     :param energy_system: The energy system to search in.
-    :return: The asset with the given ID.
+    :return: The esdl item with the given ID.
     :raises ValueError: If the asset with the given ID is not found.
     """
-    try:
-        return cast(
-            esdl.Asset,
-            next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id)),
-        )
-    except StopIteration:
+    item = next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id), None)
+    if item is None:
         raise ValueError(f"{id} does not exist in this energy system")
+    if not isinstance(item, item_type):
+        raise ValueError("Not an Asset or Port")
+    return item
+
+
+def find_asset_from_port(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
+    """Finds the esdl asset for a given port id.
+
+    :param id: The ID of the asset to find.
+    :param energy_system: The energy system to search in.
+    :return: The asset ID that owns the given port.
+    :raises ValueError: If the asset with the given ID is not found.
+    """
+    for asset in energy_system.eAllContents():
+        if not isinstance(asset, esdl.Asset):
+            continue
+        for port in asset.port:
+            if port.id == id:
+                return asset
+    raise ValueError(f"port {id} does not exist in this energy system")
 
 
 def add_datetime_index(
@@ -152,18 +155,14 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     series_name: Tuple[str, str]
     for series_name_uncasted, _ in simulation_result.items():
         series_name = cast(Tuple[str, str], series_name_uncasted)
-        asset_id = series_name[0]
+        port_id = series_name[0]
+        port: esdl.Port = id_to_esdl_item(port_id, esh.energy_system, esdl.Port)
+        carrier: esdl.Carrier = port.carrier
         profile_name = series_name[1]
         logger.debug("Output series: %s", series_name)
-        asset = _id_to_asset(asset_id, esh.energy_system)
-        if profile_name.lower().endswith("supply"):
-            port_index = get_port_index(asset, esdl.InPort)
-        else:
-            port_index = get_port_index(asset, esdl.OutPort)
+        asset = find_asset_from_port(port_id, esh.energy_system)
+        asset_id = asset.id
         logger.debug("%s:\t\t %s", series_name, asset.port)
-        logger.debug("Port index=%s", port_index)
-        port: esdl.Port = asset.port[port_index]
-        carrier: esdl.Carrier = port.carrier
 
         series_per_asset_id_for_carrier = series_per_asset_id_per_carrier_id.setdefault(
             carrier.id, {}
@@ -174,7 +173,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
     for carrier_id in series_per_asset_id_per_carrier_id:
         for asset_id in series_per_asset_id_per_carrier_id[carrier_id]:
-            asset = _id_to_asset(asset_id, esh.energy_system)
+            asset = id_to_esdl_item(asset_id, esh.energy_system, esdl.Asset)
             maybe_asset_capability = next(
                 (c for c in capabilities if c in asset.__class__.__mro__), None
             )
