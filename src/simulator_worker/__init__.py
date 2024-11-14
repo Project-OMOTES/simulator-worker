@@ -16,8 +16,8 @@
 """__init__.py file containing the defaults."""
 import os
 
-from omotes_sdk import setup_logging, LogLevel
+from omotes_sdk import LogLevel, setup_logging
 
-from simulator_worker.simulator_worker import start_app
+from simulator_worker.simulator_worker import start_app as start_app
 
 setup_logging(LogLevel.parse(os.environ.get("LOG_LEVEL", "INFO")), "simulator_worker")
