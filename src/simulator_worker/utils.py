@@ -78,7 +78,7 @@ def add_datetime_index(
     :return: The dataframe with the datetime index added.
     """
     df["datetime"] = pd.date_range(
-        start=starttime, end=endtime, freq=f"{timestep}S", inclusive="left"
+        start=starttime, end=endtime, freq=f"{timestep}s", inclusive="left"
     )
     df.set_index("datetime", inplace=True)
     return df
@@ -93,9 +93,9 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
     if property_name.startswith("mass_flow"):
         return esdl.esdl.QuantityAndUnitType(
             physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
-            unit=esdl.UnitEnum.CUBIC_METRE,
+            unit=esdl.UnitEnum.GRAM,
             perTimeUnit=esdl.TimeUnitEnum.SECOND,
-            multiplier=esdl.MultiplierEnum.NONE,
+            multiplier=esdl.MultiplierEnum.KILO,
         )
     elif property_name.startswith("pressure"):
         return esdl.esdl.QuantityAndUnitType(
@@ -106,7 +106,7 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
     elif property_name.startswith("temperature"):
         return esdl.esdl.QuantityAndUnitType(
             physicalQuantity=esdl.PhysicalQuantityEnum.TEMPERATURE,
-            unit=esdl.UnitEnum.DEGREES_CELSIUS,
+            unit=esdl.UnitEnum.KELVIN,
             multiplier=esdl.MultiplierEnum.NONE,
         )
     else:
@@ -231,6 +231,9 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
 
 
 if __name__ == "__main__":
+    import dotenv
+
+    dotenv.load_dotenv()
     with open(r"./testdata/test1.esdl", "r") as f:
         input_esdl = f.read()
 
@@ -241,7 +244,7 @@ if __name__ == "__main__":
         datetime.strptime("2019-01-01T10:00:00", "%Y-%m-%dT%H:%M:%S"),
         3600,
     )
-    print(f"shape={result_indexed.shape}")
+    print(f"{df.head()}\nshape={result_indexed.shape}")
     output_esdl = create_output_esdl(input_esdl=input_esdl, simulation_result=result_indexed)
     with open("./testdata/test1_output.esdl", "w") as output_esdl_file:
         output_esdl_file.write(output_esdl)
