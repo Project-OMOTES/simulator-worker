@@ -29,22 +29,22 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "setuptools ~= 69.0.3",
-    "pip-tools ~= 7.3.0",
-    "black~=22.1.0",
-    "flake8==6.0.0",
-    "Flake8-pyproject==1.2.3",
-    "flake8-docstrings==1.7.0",
-    "flake8-quotes==3.3.2",
-    "flake8-bugbear==23.9.16",
-    "flake8-mock==0.4",
-    "flake8-tuple==0.4.1",
-    "pytest ~=7.3.1",
-    "pytest-cov ~=4.0.0",
-    "bump2version==1.0.1",
-    "mypy ~= 1.5.1",
-    "isort==5.13.2",
-    "build ~= 1.0.3",
+    "setuptools ~= 75.6.0",
+    "wheel ~= 0.45.1",
+    "setuptools-git-versioning >= 2.0, < 3",
+    "black ~= 24.10.0",
+    "flake8 == 7.1.1",
+    "flake8-pyproject ~= 1.2.3",
+    "flake8-docstrings ~= 1.7.0",
+    "flake8-quotes ~= 3.4.0",
+    "flake8-bugbear ~= 24.10.31",
+    "flake8-mock ~= 0.4",
+    "flake8-tuple ~= 0.4.1",
+    "pytest ~= 8.3.4",
+    "pytest-cov ~= 6.0.0",
+    "mypy ~= 1.13.0",
+    "isort == 5.13.2",
+    "build ~= 1.2.2",
     "pandas-stubs ~= 2.1.1"
 ]
 
@@ -60,16 +60,14 @@ simulator_worker = "simulator_worker:start_app"
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-    "setuptools ~= 69.1.0",
-    "wheel ~= 0.42.0",
-    "setuptools-git-versioning>=2.0,<3",
+    "setuptools ~= 75.6.0",
+    "wheel ~= 0.45.1",
+    "setuptools-git-versioning >= 2.0, < 3",
 ]
 
 [tool.setuptools-git-versioning]
 enabled = true
-starting_version = "0.0.13"
-dev_template = "{tag}.dev{ccount}"
-dirty_template = "{tag}.dev{ccount}"
+starting_version = "0.0.1"
 
 [tool.pytest.ini_options]
 addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 29"
@@ -86,6 +84,8 @@ ignore = [
     'E203', # Space before colon (not PEP-8 compliant, and conflicts with black)
     'C408', # Suggestion to use dict() over {}
     'W503', # Starting lines with operators.
+    'D104', # Missing docstring in public package
+    'D100'  # Missing docstring in public module
 ]
 per-file-ignores = ['__init__.py:F401', 'test_*.py:D100,D101,D102,D103']
 max-line-length = 100
