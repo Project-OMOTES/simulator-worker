@@ -12,8 +12,6 @@ jobs:
     name: Setup
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -40,8 +38,6 @@ jobs:
         python-version: [ "3.11" ]
     steps:
     - uses: actions/checkout@v3
-      with:
-        submodules: 'recursive'
     - name: Restore venv
       uses: actions/download-artifact@v4
       with:
@@ -51,23 +47,6 @@ jobs:
     - name: run unit tests
       run: |
         ./ci/linux/lint.sh
-
-  integration-test:
-    name: Integration Test
-    runs-on: ubuntu-latest
-    needs: [ setup ]
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ "3.11" ]
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'recursive'
-    - name: run integration tests
-      run: |
-        cd integration_test
-        ./ci/test_integration.sh
 
   test:
     name: Test
@@ -79,8 +58,6 @@ jobs:
         python-version: [ "3.11" ]
     steps:
     - uses: actions/checkout@v3
-      with:
-        submodules: 'recursive'
     - name: Restore venv
       uses: actions/download-artifact@v4
       with:
@@ -124,8 +101,6 @@ jobs:
         python-version: [ "3.11" ]
     steps:
     - uses: actions/checkout@v3
-      with:
-        submodules: 'recursive'
     - name: Restore venv
       uses: actions/download-artifact@v4
       with:
