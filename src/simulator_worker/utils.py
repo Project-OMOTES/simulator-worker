@@ -159,8 +159,15 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
             unit=esdl.UnitEnum.WATT,
             multiplier=esdl.MultiplierEnum.NONE,
         )
+    elif property_name.startswith("velocity"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.SPEED,
+            unit=esdl.UnitEnum.METRE,
+            perTimeUnit=esdl.TimeUnitEnum.SECOND,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
     else:
-        raise ValueError(f"Unknown property name: {property_name}")
+        logger.info(f"Unknown property name: {property_name}")
 
 
 def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
