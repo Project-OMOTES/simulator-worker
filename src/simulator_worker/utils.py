@@ -131,31 +131,31 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
         )
     elif property_name.startswith("heat_loss"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
             unit=esdl.UnitEnum.WATT,
             multiplier=esdl.MultiplierEnum.NONE,
         )
     elif property_name.startswith("heat_supplied"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
             unit=esdl.UnitEnum.WATT,
             multiplier=esdl.MultiplierEnum.NONE,
         )
     elif property_name.startswith("heat_demand"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
             unit=esdl.UnitEnum.WATT,
             multiplier=esdl.MultiplierEnum.NONE,
         )
     elif property_name.startswith("heat_supply_set_point"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
             unit=esdl.UnitEnum.WATT,
             multiplier=esdl.MultiplierEnum.NONE,
         )
     elif property_name.startswith("heat_demand_set_point"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
             unit=esdl.UnitEnum.WATT,
             multiplier=esdl.MultiplierEnum.NONE,
         )
