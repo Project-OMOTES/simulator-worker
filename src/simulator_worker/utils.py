@@ -109,6 +109,56 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
             unit=esdl.UnitEnum.KELVIN,
             multiplier=esdl.MultiplierEnum.NONE,
         )
+    elif property_name.startswith("volume_flow"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
+            unit=esdl.UnitEnum.CUBIC_METRE,
+            perTimeUnit=esdl.TimeUnitEnum.SECOND,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
+    elif property_name.startswith("pressure_loss_per_length"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.PRESSURE,
+            perMultiplier=esdl.MultiplierEnum.METRE,
+            unit=esdl.UnitEnum.PASCAL,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
+    elif property_name.startswith("pressure_loss"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.PRESSURE,
+            unit=esdl.UnitEnum.PASCAL,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
+    elif property_name.startswith("heat_loss"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            unit=esdl.UnitEnum.WATT,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
+    elif property_name.startswith("heat_supplied"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            unit=esdl.UnitEnum.WATT,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
+    elif property_name.startswith("heat_demand"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            unit=esdl.UnitEnum.WATT,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
+    elif property_name.startswith("heat_supply_set_point"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            unit=esdl.UnitEnum.WATT,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
+    elif property_name.startswith("heat_demand_set_point"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.HEAT_FLOW,
+            unit=esdl.UnitEnum.WATT,
+            multiplier=esdl.MultiplierEnum.NONE,
+        )
     else:
         raise ValueError(f"Unknown property name: {property_name}")
 
