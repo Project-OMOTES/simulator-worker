@@ -166,6 +166,20 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
             perTimeUnit=esdl.TimeUnitEnum.SECOND,
             multiplier=esdl.MultiplierEnum.NONE,
         )
+    elif property_name.startswith("charge rate"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
+            unit=esdl.UnitEnum.GRAM,
+            perTimeUnit=esdl.TimeUnitEnum.SECOND,
+            multiplier=esdl.MultiplierEnum.KILO,
+        )
+    elif property_name.startswith("discharge rate"):
+        return esdl.esdl.QuantityAndUnitType(
+            physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
+            unit=esdl.UnitEnum.GRAM,
+            perTimeUnit=esdl.TimeUnitEnum.SECOND,
+            multiplier=esdl.MultiplierEnum.KILO,
+        )
     else:
         logger.info(f"Unknown property name: {property_name}")
 
