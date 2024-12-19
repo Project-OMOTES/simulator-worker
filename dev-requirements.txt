@@ -16,7 +16,7 @@ amqp==5.3.1
     # via
     #   -c requirements.txt
     #   kombu
-attrs==24.2.0
+attrs==24.3.0
     # via flake8-bugbear
 billiard==4.2.1
     # via
@@ -30,7 +30,7 @@ celery==5.3.6
     # via
     #   -c requirements.txt
     #   omotes-sdk-python
-certifi==2024.8.30
+certifi==2024.12.14
     # via
     #   -c requirements.txt
     #   requests
@@ -146,7 +146,7 @@ omotes-sdk-python==3.2.5
     # via
     #   -c requirements.txt
     #   simulator-worker (pyproject.toml)
-omotes-simulator-core==0.0.13
+omotes-simulator-core==0.0.18
     # via
     #   -c requirements.txt
     #   simulator-worker (pyproject.toml)

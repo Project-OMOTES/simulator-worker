@@ -14,7 +14,7 @@ billiard==4.2.1
     # via celery
 celery==5.3.6
     # via omotes-sdk-python
-certifi==2024.8.30
+certifi==2024.12.14
     # via requests
 charset-normalizer==3.4.0
     # via requests
@@ -59,7 +59,7 @@ omotes-sdk-protocol==0.1.13
     # via omotes-sdk-python
 omotes-sdk-python==3.2.5
     # via simulator-worker (pyproject.toml)
-omotes-simulator-core==0.0.13
+omotes-simulator-core==0.0.18
     # via simulator-worker (pyproject.toml)
 ordered-set==4.1.0
     # via pyecore
