@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import dotenv
+from omotes_sdk.internal.orchestrator_worker_events.esdl_messages import EsdlMessage
 from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
 from omotes_sdk.types import ProtobufDict
 from omotes_sdk.workflow_type import (
@@ -44,7 +45,7 @@ logger = logging.getLogger("simulator_worker")
 
 def simulator_worker_task(
     input_esdl: str, workflow_config: ProtobufDict, update_progress_handler: UpdateProgressHandler
-) -> str:
+) -> tuple[str | None, list[EsdlMessage]]:
     """Simulator worker function for celery task.
 
     Note: Be careful! This spawns within a subprocess and gains a copy of memory from parent
@@ -111,7 +112,7 @@ def simulator_worker_task(
     # Write output_esdl to file for debugging
     # with open(f"result_{simulation_id}.esdl", "w") as file:
     #     file.writelines(output_esdl)
-    return output_esdl
+    return output_esdl, []
 
 
 def start_app() -> None:
