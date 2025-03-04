@@ -267,7 +267,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                     startDate=simulation_result.index[0],
                     endDate=simulation_result.index[-1],
                     id=str(uuid.uuid4()),
-                    filters = f"&quot;assetId&quot;='{asset_id}'"
+                    filters=f"&quot;assetId&quot;='{asset_id}'"
                 )
 
                 profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(profile_name)
