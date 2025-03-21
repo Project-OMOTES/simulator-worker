@@ -33,7 +33,7 @@ class OmotesEsdlMessageHandler(logging.Handler):
         )
 
 
-def setup_logging(debug: bool = False) -> OmotesEsdlMessageHandler:
+def setup_logging(debug: bool = True) -> OmotesEsdlMessageHandler:
     """Setup logging for the simulator."""
     level = logging.DEBUG if debug else logging.INFO
     root = logging.getLogger()
