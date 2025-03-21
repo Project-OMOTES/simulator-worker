@@ -21,7 +21,6 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import dotenv
-from omotes_logging import OmotesEsdlMessageHandler, setup_logging
 from omotes_sdk.internal.orchestrator_worker_events.esdl_messages import EsdlMessage
 from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
 from omotes_sdk.types import ProtobufDict
@@ -37,6 +36,7 @@ from omotes_simulator_core.entities.simulation_configuration import (
 from omotes_simulator_core.infrastructure.simulation_manager import SimulationManager
 from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 
+from simulator_worker.omotes_logging import OmotesEsdlMessageHandler, setup_logging
 from simulator_worker.utils import add_datetime_index, create_output_esdl
 
 dotenv.load_dotenv()
