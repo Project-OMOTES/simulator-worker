@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import dotenv
+from omotes_logging import OmotesEsdlMessageHandler, setup_logging
 from omotes_sdk.internal.orchestrator_worker_events.esdl_messages import EsdlMessage
 from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
 from omotes_sdk.types import ProtobufDict
@@ -112,12 +113,13 @@ def simulator_worker_task(
     # Write output_esdl to file for debugging
     # with open(f"result_{simulation_id}.esdl", "w") as file:
     #     file.writelines(output_esdl)
-    return output_esdl, []
+    return output_esdl, OmotesEsdlMessageHandler.esdl_msgs
 
 
 def start_app() -> None:
     """Design Toolkit Application application."""
     try:
+        setup_logging()
         initialize_worker("simulator", simulator_worker_task)
     except Exception as error:
         logger.error("Error occured: %s at: %s", error, traceback.format_exc(limit=-1))
