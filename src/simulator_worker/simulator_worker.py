@@ -36,6 +36,7 @@ from omotes_simulator_core.entities.simulation_configuration import (
 from omotes_simulator_core.infrastructure.simulation_manager import SimulationManager
 from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 
+from simulator_worker.omotes_logging import OmotesEsdlMessageHandler, setup_logging
 from simulator_worker.utils import add_datetime_index, create_output_esdl
 
 dotenv.load_dotenv()
@@ -112,12 +113,13 @@ def simulator_worker_task(
     # Write output_esdl to file for debugging
     # with open(f"result_{simulation_id}.esdl", "w") as file:
     #     file.writelines(output_esdl)
-    return output_esdl, []
+    return output_esdl, OmotesEsdlMessageHandler.esdl_msgs
 
 
 def start_app() -> None:
     """Design Toolkit Application application."""
     try:
+        setup_logging()
         initialize_worker("simulator", simulator_worker_task)
     except Exception as error:
         logger.error("Error occured: %s at: %s", error, traceback.format_exc(limit=-1))
