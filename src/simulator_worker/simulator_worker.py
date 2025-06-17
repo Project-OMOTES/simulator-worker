@@ -44,7 +44,10 @@ logger = logging.getLogger("simulator_worker")
 
 
 def simulator_worker_task(
-    input_esdl: str, workflow_config: ProtobufDict, update_progress_handler: UpdateProgressHandler
+    input_esdl: str,
+    workflow_config: ProtobufDict,
+    update_progress_handler: UpdateProgressHandler,
+    workflow_type_name: str,
 ) -> tuple[str | None, list[EsdlMessage]]:
     """Simulator worker function for celery task.
 
@@ -61,10 +64,11 @@ def simulator_worker_task(
     :param input_esdl: The input ESDL XML string.
     :param workflow_config: Extra parameters to configure this run.
     :param update_progress_handler: Handler to notify of any progress changes.
+    :param workflow_type_name: Name of the workflow.
     :return: Simulated ESDL with simulation result profiles added to input ESDL but no other
         changes.
     """
-    logger.info("Starting Simulator-core...")
+    logger.info(f"Starting Simulator-core for task type '{workflow_type_name}'...")
 
     # TODO
     # pass update_progress_handler(fraction: float, msg: str) to simulator-core
@@ -118,7 +122,7 @@ def simulator_worker_task(
 def start_app() -> None:
     """Design Toolkit Application application."""
     try:
-        initialize_worker("simulator", simulator_worker_task)
+        initialize_worker(["simulator"], simulator_worker_task)
     except Exception as error:
         logger.error("Error occured: %s at: %s", error, traceback.format_exc(limit=-1))
         logger.debug(traceback.format_exc())
