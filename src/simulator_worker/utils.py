@@ -250,7 +250,9 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                                       license="n/a",
                                       author="Deltares/TNO",
                                       contactDetails="you do not get the secrets easily")
-    reference = esdl.esdl.DataSourceReference(reference=datasource)
+    esh.energy_system.energySystemInformation.dataSources = esdl.DataSources(id=str(uuid.uuid4()), dataSource=[datasource])
+
+
 
     capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
     for carrier_id in series_per_asset_id_per_carrier_id:
@@ -267,7 +269,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
             for series_name, port in series_per_asset_id_per_carrier_id[carrier_id][asset_id]:
                 # Add profile to esdl
                 profile_name = series_name[1]
-
+                reference = esdl.esdl.DataSourceReference(reference=datasource)
                 profiles.profile_header.append(profile_name)
                 profile_attributes = esdl.InfluxDBProfile(
                     database=output_uuid,
