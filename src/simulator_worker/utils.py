@@ -242,17 +242,17 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         series_for_asset_id_for_carrier.append((series_name, port))
 
     datasource = esdl.esdl.DataSource(name="Omotes simulator core run",
-                                      description="......",
-                                      reference="......",
-                                      attribution="......",
+                                      id=str(uuid.uuid4()),
+                                      description="This profile is a simulation results obtained with teh Omotes simualtor core",
+                                      reference="https://simulator-core.readthedocs.io/en/latest/",
                                       releaseDate=datetime.now(),
                                       version="0.21",
-                                      license="n/a",
+                                      license="GNU GENERAL PUBLIC LICENSE",
                                       author="Deltares/TNO",
-                                      contactDetails="you do not get the secrets easily")
-    esh.energy_system.energySystemInformation.dataSources = esdl.DataSources(id=str(uuid.uuid4()), dataSource=[datasource])
-
-
+                                      contactDetails="https://github.com/Project-OMOTES")
+    esh.energy_system.energySystemInformation.dataSources = esdl.DataSources(id=str(uuid.uuid4()),
+                                                                             dataSource=[
+                                                                                 datasource])
 
     capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
     for carrier_id in series_per_asset_id_per_carrier_id:
