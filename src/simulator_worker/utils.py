@@ -243,7 +243,8 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
 
     datasource = esdl.esdl.DataSource(name="Omotes simulator core run",
                                       id=str(uuid.uuid4()),
-                                      description="This profile is a simulation results obtained with teh Omotes simualtor core",
+                                      description="This profile is a simulation results obtained "
+                                                  "with the Omotes simulator core",
                                       reference="https://simulator-core.readthedocs.io/en/latest/",
                                       releaseDate=datetime.now(),
                                       version="0.21",
