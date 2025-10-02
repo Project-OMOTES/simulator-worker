@@ -241,6 +241,17 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         series_for_asset_id_for_carrier = series_per_asset_id_for_carrier.setdefault(asset_id, [])
         series_for_asset_id_for_carrier.append((series_name, port))
 
+    datasource = esdl.esdl.DataSource(name="Omotes simulator core run",
+                                      description="......",
+                                      reference="......",
+                                      attribution="......",
+                                      releaseDate=datetime.now(),
+                                      version="0.21",
+                                      license="n/a",
+                                      author="Deltares/TNO",
+                                      contactDetails="you do not get the secrets easily")
+    reference = esdl.esdl.DataSourceReference(reference=datasource)
+
     capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
     for carrier_id in series_per_asset_id_per_carrier_id:
         for asset_id in series_per_asset_id_per_carrier_id[carrier_id]:
@@ -267,7 +278,9 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                     startDate=simulation_result.index[0],
                     endDate=simulation_result.index[-1],
                     id=str(uuid.uuid4()),
-                    filters=f"\"assetId\"='{asset_id}'"
+                    filters=f"\"assetId\"='{asset_id}'",
+                    profileType=esdl.ProfileTypeEnum.INPUT,
+                    dataSource=reference
                 )
 
                 profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(profile_name)
