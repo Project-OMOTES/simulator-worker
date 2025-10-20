@@ -247,7 +247,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                                                   "with the Omotes simulator core",
                                       reference="https://simulator-core.readthedocs.io/en/latest/",
                                       releaseDate=datetime.now(),
-                                      version="0.21",
+                                      version=omotes_simulator_core.__version__,
                                       license="GNU GENERAL PUBLIC LICENSE",
                                       author="Deltares/TNO",
                                       contactDetails="https://github.com/Project-OMOTES")
@@ -282,7 +282,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                     endDate=simulation_result.index[-1],
                     id=str(uuid.uuid4()),
                     filters=f"\"assetId\"='{asset_id}'",
-                    profileType=esdl.ProfileTypeEnum.INPUT,
+                    profileType=esdl.ProfileTypeEnum.OUTPUT,
                     dataSource=reference
                 )
 
