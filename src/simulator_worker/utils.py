@@ -14,6 +14,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """utility functions for simulator-worker."""
 import logging
+import omotes_simulator_core
 import os
 import uuid
 from datetime import datetime
