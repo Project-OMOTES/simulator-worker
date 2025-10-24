@@ -2,9 +2,9 @@ FROM python:3.11-slim-bookworm
 
 WORKDIR /app/simulator_worker
 
-# Install OpenJDK-17
+# Install OpenJDK-21
 RUN apt-get -y update  && \
-    apt-get install -y openjdk-17-jdk && \
+    apt-get install -y openjdk-21-jdk && \
     apt-get clean;
 
 COPY .  /app/simulator_worker/
