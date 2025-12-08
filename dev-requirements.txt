@@ -154,7 +154,7 @@ omotes-sdk-python==4.3.2
     # via
     #   -c ..\..\requirements.txt
     #   simulator-worker (..\..\pyproject.toml)
-omotes-simulator-core==0.0.24
+omotes-simulator-core==0.0.28
     # via
     #   -c ..\..\requirements.txt
     #   simulator-worker (..\..\pyproject.toml)
