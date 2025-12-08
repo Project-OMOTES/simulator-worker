@@ -14,6 +14,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """utility functions for simulator-worker."""
 import logging
+import omotes_simulator_core
 import os
 import uuid
 from datetime import datetime
@@ -241,6 +242,20 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         series_for_asset_id_for_carrier = series_per_asset_id_for_carrier.setdefault(asset_id, [])
         series_for_asset_id_for_carrier.append((series_name, port))
 
+    datasource = esdl.esdl.DataSource(name="Omotes simulator core run",
+                                      id=str(uuid.uuid4()),
+                                      description="This profile is a simulation results obtained "
+                                                  "with the Omotes simulator core",
+                                      reference="https://simulator-core.readthedocs.io/en/latest/",
+                                      releaseDate=datetime.now(),
+                                      version=omotes_simulator_core.__version__,
+                                      license="GNU GENERAL PUBLIC LICENSE",
+                                      author="Deltares/TNO",
+                                      contactDetails="https://github.com/Project-OMOTES")
+    esh.energy_system.energySystemInformation.dataSources = esdl.DataSources(id=str(uuid.uuid4()),
+                                                                             dataSource=[
+                                                                                 datasource])
+
     capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
     for carrier_id in series_per_asset_id_per_carrier_id:
         for asset_id in series_per_asset_id_per_carrier_id[carrier_id]:
@@ -256,7 +271,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
             for series_name, port in series_per_asset_id_per_carrier_id[carrier_id][asset_id]:
                 # Add profile to esdl
                 profile_name = series_name[1]
-
+                reference = esdl.esdl.DataSourceReference(reference=datasource)
                 profiles.profile_header.append(profile_name)
                 profile_attributes = esdl.InfluxDBProfile(
                     database=output_uuid,
@@ -267,7 +282,9 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                     startDate=simulation_result.index[0],
                     endDate=simulation_result.index[-1],
                     id=str(uuid.uuid4()),
-                    filters=f"\"assetId\"='{asset_id}'"
+                    filters=f"\"assetId\"='{asset_id}'",
+                    profileType=esdl.ProfileTypeEnum.OUTPUT,
+                    dataSource=reference
                 )
 
                 profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(profile_name)
