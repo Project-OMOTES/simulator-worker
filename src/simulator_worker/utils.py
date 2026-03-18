@@ -14,13 +14,13 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """utility functions for simulator-worker."""
 import logging
-import omotes_simulator_core
 import os
 import uuid
 from datetime import datetime
-from typing import Dict, List, Tuple, Type, TypeVar, cast
+from typing import Dict, List, Optional, Tuple, Type, TypeVar, cast
 
 import esdl
+import omotes_simulator_core
 import pandas as pd
 from esdl.profiles.influxdbprofilemanager import (
     ConnectionSettings,
@@ -85,11 +85,11 @@ def add_datetime_index(
     return df
 
 
-def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitType:
+def get_profileQuantityAndUnit(property_name: str) -> Optional[esdl.esdl.QuantityAndUnitType]:
     """Get the profile quantity and unit.
 
     :param property_name: The name of the property to get the quantity and unit for.
-    :return: The quantity and unit for the given property name.
+    :return: The quantity and unit for the given property name, or None if unknown.
     """
     if property_name.startswith("mass_flow"):
         return esdl.esdl.QuantityAndUnitType(
@@ -183,6 +183,7 @@ def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitT
         )
     else:
         logger.info(f"Unknown property name: {property_name}")
+        return None
 
 
 def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
@@ -242,19 +243,21 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         series_for_asset_id_for_carrier = series_per_asset_id_for_carrier.setdefault(asset_id, [])
         series_for_asset_id_for_carrier.append((series_name, port))
 
-    datasource = esdl.esdl.DataSource(name="Omotes simulator core run",
-                                      id=str(uuid.uuid4()),
-                                      description="This profile is a simulation results obtained "
-                                                  "with the Omotes simulator core",
-                                      reference="https://simulator-core.readthedocs.io/en/latest/",
-                                      releaseDate=datetime.now(),
-                                      version=omotes_simulator_core.__version__,
-                                      license="GNU GENERAL PUBLIC LICENSE",
-                                      author="Deltares/TNO",
-                                      contactDetails="https://github.com/Project-OMOTES")
-    esh.energy_system.energySystemInformation.dataSources = esdl.DataSources(id=str(uuid.uuid4()),
-                                                                             dataSource=[
-                                                                                 datasource])
+    datasource = esdl.esdl.DataSource(
+        name="Omotes simulator core run",
+        id=str(uuid.uuid4()),
+        description="This profile is a simulation results obtained "
+        "with the Omotes simulator core",
+        reference="https://simulator-core.readthedocs.io/en/latest/",
+        releaseDate=datetime.now(),
+        version=omotes_simulator_core.__version__,
+        license="GNU GENERAL PUBLIC LICENSE",
+        author="Deltares/TNO",
+        contactDetails="https://github.com/Project-OMOTES",
+    )
+    esh.energy_system.energySystemInformation.dataSources = esdl.DataSources(
+        id=str(uuid.uuid4()), dataSource=[datasource]
+    )
 
     capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
     for carrier_id in series_per_asset_id_per_carrier_id:
@@ -284,10 +287,11 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                     id=str(uuid.uuid4()),
                     filters=f"\"assetId\"='{asset_id}'",
                     profileType=esdl.ProfileTypeEnum.OUTPUT,
-                    dataSource=reference
+                    dataSource=reference,
                 )
 
-                profile_attributes.profileQuantityAndUnit = get_profileQuantityAndUnit(profile_name)
+                if (quantity_and_unit := get_profileQuantityAndUnit(profile_name)) is not None:
+                    profile_attributes.profileQuantityAndUnit = quantity_and_unit
                 port.profile.append(profile_attributes)
 
             for index, row in simulation_result.loc[

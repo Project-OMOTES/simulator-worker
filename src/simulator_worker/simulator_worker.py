@@ -111,7 +111,66 @@ def simulator_worker_task(
         len(result_indexed.columns),
         result_indexed.shape,
     )
+
+    # ===== Create output ESDL with simulation results =====
     output_esdl = create_output_esdl(input_esdl, result_indexed)
+
+    # ===== KPI Calculation =====
+    logger.info("Calculating KPIs from simulation results...")
+
+    try:
+        from kpicalculator import KpiManager
+        from kpicalculator.common.constants import DEFAULT_SYSTEM_LIFETIME_YEARS
+
+        # Get system lifetime from workflow config
+        system_lifetime_value = workflow_config.get(
+            "system_lifetime", DEFAULT_SYSTEM_LIFETIME_YEARS
+        )
+        if isinstance(system_lifetime_value, (int, float, str)):
+            system_lifetime = float(system_lifetime_value)
+        else:
+            system_lifetime = DEFAULT_SYSTEM_LIFETIME_YEARS
+
+        # Load simulator results and ESDL cost data in one step
+        kpi_manager = KpiManager()
+        kpi_manager.load_from_simulator(result_indexed, input_esdl)
+
+        # Calculate KPIs
+        kpi_results = kpi_manager.calculate_all_kpis(system_lifetime=system_lifetime)
+        logger.info("KPI calculation completed successfully")
+        capex_value = kpi_results.get("costs", {}).get("capex", {}).get("All", 0)
+        logger.debug(f"KPI results: CAPEX={capex_value:.2f} EUR")
+
+        # Add KPIs to output ESDL and serialize to string.
+        #
+        # TODO: replace this workaround once kpi-calculator provides a
+        #   build_esdl_string_with_kpis(esdl_string, results, level) method
+        #   (tracked in kpi-calculator roadmap).
+        #
+        # Workaround: get_esdl_with_kpis() applies KPIs to the esdl_energy_system
+        # object that was parsed from input_esdl, but we need them in output_esdl
+        # (which carries the simulation-result profiles). We redirect
+        # esdl_energy_system to the output_esdl parse tree so the exporter
+        # modifies it in-place, then serialize via the same pyecore resource.
+        esh_with_kpis = pyesdl_from_string(output_esdl)
+        kpi_manager.energy_system.esdl_energy_system = (  # type: ignore[union-attr]
+            esh_with_kpis.energy_system
+        )
+        kpi_manager.get_esdl_with_kpis(kpi_results, level="system")
+        output_esdl = esh_with_kpis.to_string()
+        logger.info("KPIs added to output ESDL successfully")
+
+    except Exception as e:
+        logger.error(
+            (
+                f"KPI calculation failed: {e}. "
+                f"Simulation will continue and return results without KPIs. "
+                f"Common causes: missing cost data in ESDL, invalid time series data, "
+                f"or kpi-calculator dependency issues. Check logs for details."
+            )
+        )
+        logger.debug(f"Stack trace: {traceback.format_exc()}")
+        # Continue without KPIs - don't fail the entire workflow
 
     # Write output_esdl to file for debugging
     # with open(f"result_{simulation_id}.esdl", "w") as file:
