@@ -57,9 +57,10 @@ def simulator_worker_task(
     in this task by the subprocess.
 
     Expected contents of workflow_config:
-    - start_time_unix_s: int (float with .0), seconds since epoch
-    - end_time_unix_s: int (float with .0), seconds since epoch
-    - timestep_s: int (float with .0) seconds
+    - start_time: float, seconds since epoch
+    - end_time: float, seconds since epoch
+    - timestep: float, seconds
+    - system_lifetime: float (optional), system lifetime in years for KPI calculation
 
     :param input_esdl: The input ESDL XML string.
     :param workflow_config: Extra parameters to configure this run.
@@ -111,7 +112,43 @@ def simulator_worker_task(
         len(result_indexed.columns),
         result_indexed.shape,
     )
+
+    # Create output ESDL with simulation results
     output_esdl = create_output_esdl(input_esdl, result_indexed)
+
+    # KPI Calculation
+    logger.info("Calculating KPIs from simulation results...")
+
+    try:
+        from kpicalculator import KpiManager
+        from kpicalculator.common.constants import DEFAULT_SYSTEM_LIFETIME_YEARS
+
+        # Get system lifetime from workflow config
+        system_lifetime_value = workflow_config.get(
+            "system_lifetime", DEFAULT_SYSTEM_LIFETIME_YEARS
+        )
+        if isinstance(system_lifetime_value, (int, float, str)):
+            system_lifetime = float(system_lifetime_value)
+        else:
+            system_lifetime = DEFAULT_SYSTEM_LIFETIME_YEARS
+
+        # Load simulator results and ESDL cost data in one step
+        kpi_manager = KpiManager()
+        kpi_manager.load_from_simulator(result_indexed, input_esdl)
+
+        # Calculate KPIs
+        kpi_results = kpi_manager.calculate_all_kpis(system_lifetime=system_lifetime)
+        logger.info("KPI calculation completed successfully")
+
+        # Embed KPIs into the output ESDL string (which carries simulation-result profiles)
+        output_esdl = kpi_manager.build_esdl_string_with_kpis(output_esdl, kpi_results)
+        logger.info("KPIs added to output ESDL successfully")
+
+    except Exception:
+        logger.exception(
+            "KPI calculation failed. Results will be returned without KPIs."
+        )
+        # Continue without KPIs - don't fail the entire workflow
 
     # Write output_esdl to file for debugging
     # with open(f"result_{simulation_id}.esdl", "w") as file:

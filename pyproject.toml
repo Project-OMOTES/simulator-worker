@@ -24,7 +24,8 @@ dependencies = [
     "omotes-sdk-python ~= 4.3.2",
     "omotes-simulator-core==0.0.28",
     "pyesdl==25.7",
-    "pandas ~= 2.2.2"
+    "pandas ~= 2.2.2",
+    "kpi-calculator>=0.4.0a2",
 ]
 
 [project.optional-dependencies]
@@ -72,6 +73,7 @@ starting_version = "0.0.1"
 [tool.pytest.ini_options]
 addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 20"
 testpaths = ["unit_test"]
+python_files = ["test_*.py"]
 
 [tool.coverage.run]
 source = ["src"]
@@ -113,4 +115,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "esdl.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "kpicalculator.*"
 ignore_missing_imports = true
