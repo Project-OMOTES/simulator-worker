@@ -5,5 +5,5 @@ if [[ "$OSTYPE" != "win32" && "$OSTYPE" != "msys" ]]; then
   . .venv/bin/activate
 fi
 
-pip-compile --upgrade --output-file=requirements.txt pyproject.toml
-pip-compile --upgrade --extra=dev -c requirements.txt --output-file=dev-requirements.txt pyproject.toml
+pip-compile --pre --upgrade --output-file=requirements.txt pyproject.toml
+pip-compile --pre --upgrade --extra=dev -c requirements.txt --output-file=dev-requirements.txt pyproject.toml
