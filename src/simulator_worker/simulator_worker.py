@@ -21,6 +21,8 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import dotenv
+
+from kpicalculator import build_esdl_string_with_kpis, calculate_kpis_from_simulator
 from omotes_sdk.internal.orchestrator_worker_events.esdl_messages import EsdlMessage
 from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
 from omotes_sdk.types import ProtobufDict
@@ -43,6 +45,18 @@ dotenv.load_dotenv()
 logger = logging.getLogger("simulator_worker")
 
 
+def _parse_bool_config(config: ProtobufDict, key: str, default: bool) -> bool:
+    """Read a bool parameter from workflow config, with Protobuf-safe string handling."""
+    value = config.get(key, default)
+    return value if isinstance(value, bool) else str(value).lower() != "false"
+
+
+def _parse_float_config(config: ProtobufDict, key: str) -> float | None:
+    """Read a float parameter from workflow config; returns None if absent or non-numeric."""
+    value = config.get(key)
+    return float(value) if isinstance(value, (int, float, str)) else None
+
+
 def simulator_worker_task(
     input_esdl: str,
     workflow_config: ProtobufDict,
@@ -57,9 +71,12 @@ def simulator_worker_task(
     in this task by the subprocess.
 
     Expected contents of workflow_config:
-    - start_time_unix_s: int (float with .0), seconds since epoch
-    - end_time_unix_s: int (float with .0), seconds since epoch
-    - timestep_s: int (float with .0) seconds
+    - start_time: float, seconds since epoch
+    - end_time: float, seconds since epoch
+    - timestep: float, seconds
+    - system_lifetime: float (optional), system lifetime in years for KPI calculation
+    - discount_rate: float (optional), discount rate in % for NPV/LCOE/EAC calculation
+    - round_up_replacement: bool (optional), set False for MESIDO optimizer compatibility
 
     :param input_esdl: The input ESDL XML string.
     :param workflow_config: Extra parameters to configure this run.
@@ -111,7 +128,30 @@ def simulator_worker_task(
         len(result_indexed.columns),
         result_indexed.shape,
     )
+
+    # Create output ESDL with simulation results
     output_esdl = create_output_esdl(input_esdl, result_indexed)
+
+    # KPI Calculation
+    logger.info("Calculating KPIs from simulation results...")
+    try:
+        system_lifetime = _parse_float_config(workflow_config, "system_lifetime")
+        discount_rate = _parse_float_config(workflow_config, "discount_rate")
+        round_up_replacement = _parse_bool_config(workflow_config, "round_up_replacement", True)
+        kpi_results = calculate_kpis_from_simulator(
+            result_indexed,
+            input_esdl,
+            **({"system_lifetime": system_lifetime} if system_lifetime is not None else {}),
+            **({"discount_rate": discount_rate} if discount_rate is not None else {}),
+            round_up_replacement=round_up_replacement,
+        )
+        logger.info(
+            "KPI calculation completed for %d assets.",
+            len(kpi_results["asset_financials"]),
+        )
+        output_esdl = build_esdl_string_with_kpis(output_esdl, kpi_results)
+    except Exception:
+        logger.exception("KPI calculation failed. Results will be returned without KPIs.")
 
     # Write output_esdl to file for debugging
     # with open(f"result_{simulation_id}.esdl", "w") as file:
@@ -124,7 +164,7 @@ def start_app() -> None:
     try:
         initialize_worker(["simulator"], simulator_worker_task)
     except Exception as error:
-        logger.error("Error occured: %s at: %s", error, traceback.format_exc(limit=-1))
+        logger.error("Error occurred: %s at: %s", error, traceback.format_exc(limit=-1))
         logger.debug(traceback.format_exc())
         raise error
 
