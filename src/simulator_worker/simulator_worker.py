@@ -22,7 +22,12 @@ from uuid import uuid4
 
 import dotenv
 
-from kpicalculator import build_esdl_string_with_kpis, calculate_kpis_from_simulator
+from kpicalculator import (
+    DEFAULT_DISCOUNT_RATE_PERCENT,
+    DEFAULT_SYSTEM_LIFETIME_YEARS,
+    build_esdl_string_with_kpis,
+    calculate_kpis_from_simulator,
+)
 from omotes_sdk.internal.orchestrator_worker_events.esdl_messages import EsdlMessage
 from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
 from omotes_sdk.types import ProtobufDict
@@ -38,23 +43,17 @@ from omotes_simulator_core.entities.simulation_configuration import (
 from omotes_simulator_core.infrastructure.simulation_manager import SimulationManager
 from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 
-from simulator_worker.utils import add_datetime_index, create_output_esdl
+from simulator_worker.utils import (
+    add_datetime_index,
+    create_output_esdl,
+    _parse_bool_config,
+    _parse_float_config,
+    save_debug_esdl,
+)
 
 dotenv.load_dotenv()
 
 logger = logging.getLogger("simulator_worker")
-
-
-def _parse_bool_config(config: ProtobufDict, key: str, default: bool) -> bool:
-    """Read a bool parameter from workflow config, with Protobuf-safe string handling."""
-    value = config.get(key, default)
-    return value if isinstance(value, bool) else str(value).lower() != "false"
-
-
-def _parse_float_config(config: ProtobufDict, key: str) -> float | None:
-    """Read a float parameter from workflow config; returns None if absent or non-numeric."""
-    value = config.get(key)
-    return float(value) if isinstance(value, (int, float, str)) else None
 
 
 def simulator_worker_task(
@@ -77,6 +76,8 @@ def simulator_worker_task(
     - system_lifetime: float (optional), system lifetime in years for KPI calculation
     - discount_rate: float (optional), discount rate in % for NPV/LCOE/EAC calculation
     - round_up_replacement: bool (optional), set False for MESIDO optimizer compatibility
+    - debug_esdl: bool (optional), if True saves input and output ESDL files for debugging
+    - debug_esdl_dir: str (optional), base directory to write debug ESDL files (default '.')
 
     :param input_esdl: The input ESDL XML string.
     :param workflow_config: Extra parameters to configure this run.
@@ -135,14 +136,30 @@ def simulator_worker_task(
     # KPI Calculation
     logger.info("Calculating KPIs from simulation results...")
     try:
-        system_lifetime = _parse_float_config(workflow_config, "system_lifetime")
-        discount_rate = _parse_float_config(workflow_config, "discount_rate")
+        system_lifetime = _parse_float_config(
+            workflow_config,
+            "system_lifetime",
+            DEFAULT_SYSTEM_LIFETIME_YEARS,
+            warn_msg=(
+                f"workflow_config missing 'system_lifetime'; "
+                f"using default {DEFAULT_SYSTEM_LIFETIME_YEARS:.1f} years."
+            ),
+        )
+        discount_rate = _parse_float_config(
+            workflow_config,
+            "discount_rate",
+            DEFAULT_DISCOUNT_RATE_PERCENT,
+            warn_msg=(
+                f"workflow_config missing 'discount_rate'; "
+                f"using default {DEFAULT_DISCOUNT_RATE_PERCENT:.1f}%."
+            ),
+        )
         round_up_replacement = _parse_bool_config(workflow_config, "round_up_replacement", True)
         kpi_results = calculate_kpis_from_simulator(
             result_indexed,
             input_esdl,
-            **({"system_lifetime": system_lifetime} if system_lifetime is not None else {}),
-            **({"discount_rate": discount_rate} if discount_rate is not None else {}),
+            system_lifetime=system_lifetime,
+            discount_rate=discount_rate,
             round_up_replacement=round_up_replacement,
         )
         logger.info(
@@ -153,9 +170,15 @@ def simulator_worker_task(
     except Exception:
         logger.exception("KPI calculation failed. Results will be returned without KPIs.")
 
-    # Write output_esdl to file for debugging
-    # with open(f"result_{simulation_id}.esdl", "w") as file:
-    #     file.writelines(output_esdl)
+    # Debug output: save ESDL files if enabled (can be controlled via workflow_config)
+    debug_enabled = _parse_bool_config(workflow_config, "debug_esdl", False)
+    if debug_enabled:
+        debug_base = str(workflow_config.get("debug_esdl_dir", "."))
+        try:
+            save_debug_esdl(simulation_id, input_esdl, output_esdl, base_dir=debug_base)
+        except Exception:
+            logger.exception("Failed to save debug ESDL files for %s", simulation_id)
+
     return output_esdl, []
 
 

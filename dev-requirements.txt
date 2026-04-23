@@ -124,7 +124,7 @@ kombu==5.6.2
     # via
     #   -c requirements.txt
     #   celery
-kpi-calculator==0.4.1
+kpi-calculator==0.4.2a1
     # via
     #   -c requirements.txt
     #   simulator-worker (pyproject.toml)
@@ -196,6 +196,8 @@ pandas==2.2.3
     #   omotes-simulator-core
     #   simulator-worker (pyproject.toml)
 pandas-stubs==2.1.4.231227
+    # via simulator-worker (pyproject.toml)
+parameterized==0.9.0
     # via simulator-worker (pyproject.toml)
 pathspec==1.0.4
     # via black

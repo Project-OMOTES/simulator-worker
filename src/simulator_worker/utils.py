@@ -17,7 +17,10 @@ import logging
 import os
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Type, TypeVar, cast
+
+from omotes_sdk.types import ProtobufDict
 
 import esdl
 import omotes_simulator_core
@@ -321,6 +324,45 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
             )
     output_esdl = cast(str, esh.to_string())
     return output_esdl
+
+
+def _parse_bool_config(config: ProtobufDict, key: str, default: bool) -> bool:
+    """Read a bool parameter from workflow config, with Protobuf-safe string handling."""
+    value = config.get(key, default)
+    if isinstance(value, bool):
+        return value
+    return str(value).lower() in ("true", "1", "yes")
+
+
+def _parse_float_config(
+    config: ProtobufDict, key: str, default: float, warn_msg: str | None = None
+) -> float:
+    """Read a float parameter from workflow config, falling back to default if absent."""
+    if key not in config:
+        if warn_msg:
+            logger.warning(warn_msg)
+        return default
+    value = config[key]
+    try:
+        return float(value) if isinstance(value, (int, float, str)) else default
+    except (ValueError, TypeError):
+        return default
+
+
+def save_debug_esdl(
+    simulation_id: uuid.UUID | str, input_esdl: str, output_esdl: str, base_dir: str | Path = "."
+) -> Path:
+    """Save input and output ESDL files to a debug directory.
+
+    The directory name is `debug_esdl_{simulation_id}` under `base_dir`.
+    Raises on I/O failure — callers are responsible for exception handling.
+    """
+    debug_dir = Path(base_dir) / f"debug_esdl_{simulation_id}"
+    debug_dir.mkdir(parents=True, exist_ok=True)
+    (debug_dir / "input.esdl").write_text(input_esdl, encoding="utf-8")
+    (debug_dir / "output.esdl").write_text(output_esdl, encoding="utf-8")
+    logger.info("Wrote debug ESDL files to %s", debug_dir)
+    return debug_dir
 
 
 if __name__ == "__main__":

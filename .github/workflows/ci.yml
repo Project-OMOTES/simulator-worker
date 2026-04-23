@@ -68,6 +68,14 @@ jobs:
       run: |
         ./ci/linux/test_unit.sh
 
+    - name: Upload debug ESDL artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-esdl
+        path: debug_esdl_*
+        if-no-files-found: warn
+
     - name: Surface failing tests
       if: always()
       uses: pmeier/pytest-results-action@main
