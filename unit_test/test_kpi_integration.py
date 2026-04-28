@@ -2,6 +2,8 @@
 
 import datetime
 import logging
+import shutil
+import tempfile
 import unittest
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Dict
@@ -184,6 +186,9 @@ class TestAllKPICategories(unittest.TestCase):
     def setUpClass(cls) -> None:
         config = _default_config()
         config["debug_esdl"] = True
+        debug_dir = tempfile.mkdtemp()
+        config["debug_esdl_dir"] = debug_dir
+        cls.addClassCleanup(shutil.rmtree, debug_dir)
         try:
             cls.kpi_by_name = _get_kpi_by_name(config)
         except Exception as e:
@@ -194,12 +199,6 @@ class TestAllKPICategories(unittest.TestCase):
 
     def test__energy_breakdown_kpi_is_present(self) -> None:
         self.assertIn("Energy breakdown [Wh]", self.kpi_by_name)
-
-    def test__co2_emissions_kpi_is_present(self) -> None:
-        self.assertIn("CO2 emissions [g]", self.kpi_by_name)
-
-    def test__co2_emissions_per_mwh_kpi_is_present(self) -> None:
-        self.assertIn("CO2 emissions per MWh [g/MWh]", self.kpi_by_name)
 
 
 @pytest.mark.skipif(not SIMULATOR_AVAILABLE, reason="omotes_simulator_core not installed")

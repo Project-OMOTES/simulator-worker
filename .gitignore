@@ -220,6 +220,7 @@ fabric.properties
 
 unit_test_coverage/
 test-results.xml
+debug_esdl_*/
 
 .env.*
 .env.template*

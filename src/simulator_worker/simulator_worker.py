@@ -166,20 +166,22 @@ def simulator_worker_task(
             "KPI calculation completed for %d assets.",
             len(kpi_results["asset_financials"]),
         )
-        output_esdl = build_esdl_string_with_kpis(output_esdl, kpi_results)
+        output_esdl_with_kpis = build_esdl_string_with_kpis(output_esdl, kpi_results)
     except Exception:
         logger.exception("KPI calculation failed. Results will be returned without KPIs.")
+        output_esdl_with_kpis = output_esdl
 
     # Debug output: save ESDL files if enabled (can be controlled via workflow_config)
     debug_enabled = _parse_bool_config(workflow_config, "debug_esdl", False)
     if debug_enabled:
         debug_base = str(workflow_config.get("debug_esdl_dir", "."))
         try:
-            save_debug_esdl(simulation_id, input_esdl, output_esdl, base_dir=debug_base)
+            save_debug_esdl(simulation_id, input_esdl, output_esdl_with_kpis, base_dir=debug_base)
         except Exception:
             logger.exception("Failed to save debug ESDL files for %s", simulation_id)
 
-    return output_esdl, []
+    # EsdlMessage list is reserved for future use; nothing collected yet
+    return output_esdl_with_kpis, []
 
 
 def start_app() -> None:

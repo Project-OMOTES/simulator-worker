@@ -124,7 +124,7 @@ kombu==5.6.2
     # via
     #   -c requirements.txt
     #   celery
-kpi-calculator==0.4.2a1
+kpi-calculator==0.4.2a2
     # via
     #   -c requirements.txt
     #   simulator-worker (pyproject.toml)

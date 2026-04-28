@@ -25,7 +25,7 @@ dependencies = [
     "omotes-simulator-core==0.0.28",
     "pyesdl==25.7",
     "pandas ~= 2.2.2",
-    "kpi-calculator>=0.4.2a1",
+    "kpi-calculator>=0.4.2a2",
 ]
 
 [project.optional-dependencies]
@@ -116,6 +116,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "esdl.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "parameterized.*"
 ignore_missing_imports = true
 
 

@@ -20,7 +20,7 @@ import math
 import unittest
 
 import pandas
-from parameterized import parameterized  # type: ignore[import-not-found]
+from parameterized import parameterized
 
 from simulator_worker.utils import (
     add_datetime_index,

@@ -52,7 +52,7 @@ influxdb==5.3.2
     #   omotes-simulator-core
 kombu==5.6.2
     # via celery
-kpi-calculator==0.4.2a1
+kpi-calculator==0.4.2a2
     # via simulator-worker (pyproject.toml)
 lxml==6.0.4
     # via pyecore
