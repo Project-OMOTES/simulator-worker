@@ -21,6 +21,13 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import dotenv
+
+from kpicalculator import (
+    DEFAULT_DISCOUNT_RATE_PERCENT,
+    DEFAULT_SYSTEM_LIFETIME_YEARS,
+    build_esdl_string_with_kpis,
+    calculate_kpis_from_simulator,
+)
 from omotes_sdk.internal.orchestrator_worker_events.esdl_messages import EsdlMessage
 from omotes_sdk.internal.worker.worker import UpdateProgressHandler, initialize_worker
 from omotes_sdk.types import ProtobufDict
@@ -36,7 +43,13 @@ from omotes_simulator_core.entities.simulation_configuration import (
 from omotes_simulator_core.infrastructure.simulation_manager import SimulationManager
 from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 
-from simulator_worker.utils import add_datetime_index, create_output_esdl
+from simulator_worker.utils import (
+    add_datetime_index,
+    create_output_esdl,
+    _parse_bool_config,
+    _parse_float_config,
+    save_debug_esdl,
+)
 
 dotenv.load_dotenv()
 
@@ -57,9 +70,14 @@ def simulator_worker_task(
     in this task by the subprocess.
 
     Expected contents of workflow_config:
-    - start_time_unix_s: int (float with .0), seconds since epoch
-    - end_time_unix_s: int (float with .0), seconds since epoch
-    - timestep_s: int (float with .0) seconds
+    - start_time: float, seconds since epoch
+    - end_time: float, seconds since epoch
+    - timestep: float, seconds
+    - system_lifetime: float (optional), system lifetime in years for KPI calculation
+    - discount_rate: float (optional), discount rate in % for NPV/LCOE/EAC calculation
+    - round_up_replacement: bool (optional), set False for MESIDO optimizer compatibility
+    - debug_esdl: bool (optional), if True saves input and output ESDL files for debugging
+    - debug_esdl_dir: str (optional), base directory to write debug ESDL files (default '.')
 
     :param input_esdl: The input ESDL XML string.
     :param workflow_config: Extra parameters to configure this run.
@@ -111,12 +129,59 @@ def simulator_worker_task(
         len(result_indexed.columns),
         result_indexed.shape,
     )
+
+    # Create output ESDL with simulation results
     output_esdl = create_output_esdl(input_esdl, result_indexed)
 
-    # Write output_esdl to file for debugging
-    # with open(f"result_{simulation_id}.esdl", "w") as file:
-    #     file.writelines(output_esdl)
-    return output_esdl, []
+    # KPI Calculation
+    logger.info("Calculating KPIs from simulation results...")
+    try:
+        system_lifetime = _parse_float_config(
+            workflow_config,
+            "system_lifetime",
+            DEFAULT_SYSTEM_LIFETIME_YEARS,
+            warn_msg=(
+                f"workflow_config missing 'system_lifetime'; "
+                f"using default {DEFAULT_SYSTEM_LIFETIME_YEARS:.1f} years."
+            ),
+        )
+        discount_rate = _parse_float_config(
+            workflow_config,
+            "discount_rate",
+            DEFAULT_DISCOUNT_RATE_PERCENT,
+            warn_msg=(
+                f"workflow_config missing 'discount_rate'; "
+                f"using default {DEFAULT_DISCOUNT_RATE_PERCENT:.1f}%."
+            ),
+        )
+        round_up_replacement = _parse_bool_config(workflow_config, "round_up_replacement", True)
+        kpi_results = calculate_kpis_from_simulator(
+            result_indexed,
+            input_esdl,
+            system_lifetime=system_lifetime,
+            discount_rate=discount_rate,
+            round_up_replacement=round_up_replacement,
+        )
+        logger.info(
+            "KPI calculation completed for %d assets.",
+            len(kpi_results["asset_financials"]),
+        )
+        output_esdl_with_kpis = build_esdl_string_with_kpis(output_esdl, kpi_results)
+    except Exception:
+        logger.exception("KPI calculation failed. Results will be returned without KPIs.")
+        output_esdl_with_kpis = output_esdl
+
+    # Debug output: save ESDL files if enabled (can be controlled via workflow_config)
+    debug_enabled = _parse_bool_config(workflow_config, "debug_esdl", False)
+    if debug_enabled:
+        debug_base = str(workflow_config.get("debug_esdl_dir", "."))
+        try:
+            save_debug_esdl(simulation_id, input_esdl, output_esdl_with_kpis, base_dir=debug_base)
+        except Exception:
+            logger.exception("Failed to save debug ESDL files for %s", simulation_id)
+
+    # EsdlMessage list is reserved for future use; nothing collected yet
+    return output_esdl_with_kpis, []
 
 
 def start_app() -> None:
@@ -124,7 +189,7 @@ def start_app() -> None:
     try:
         initialize_worker(["simulator"], simulator_worker_task)
     except Exception as error:
-        logger.error("Error occured: %s at: %s", error, traceback.format_exc(limit=-1))
+        logger.error("Error occurred: %s at: %s", error, traceback.format_exc(limit=-1))
         logger.debug(traceback.format_exc())
         raise error
 

@@ -24,7 +24,8 @@ dependencies = [
     "omotes-sdk-python ~= 4.3.2",
     "omotes-simulator-core==0.0.28",
     "pyesdl==25.7",
-    "pandas ~= 2.2.2"
+    "pandas ~= 2.2.2",
+    "kpi-calculator>=0.4.2a2",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,7 @@ dev = [
     "flake8-tuple ~= 0.4.1",
     "pytest ~= 8.3.4",
     "pytest-cov ~= 6.0.0",
+    "parameterized ~= 0.9.0",
     "mypy ~= 1.13.0",
     "isort == 5.13.2",
     "build ~= 1.2.2",
@@ -70,8 +72,9 @@ enabled = true
 starting_version = "0.0.1"
 
 [tool.pytest.ini_options]
-addopts = "--cov=simulator_worker --cov-report html --cov-report term-missing --cov-fail-under 20"
+addopts = "--cov=simulator_worker --cov-report=html --cov-report=term-missing --cov-fail-under=20"
 testpaths = ["unit_test"]
+python_files = ["test_*.py"]
 
 [tool.coverage.run]
 source = ["src"]
@@ -114,3 +117,9 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "esdl.*"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "parameterized.*"
+ignore_missing_imports = true
+
+
