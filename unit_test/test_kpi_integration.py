@@ -27,6 +27,9 @@ except ImportError:
     simulator_worker_task = None  # type: ignore[assignment, misc]
     pyesdl_from_string = None  # type: ignore[assignment, misc]
 
+from kpicalculator import DEFAULT_DISCOUNT_RATE_PERCENT, DEFAULT_SYSTEM_LIFETIME_YEARS  # noqa: E402
+from simulator_worker.utils import _parse_float_config  # noqa: E402
+
 
 def _run_simulator(workflow_config: ProtobufDict) -> tuple:
     test_esdl_path = Path(__file__).parent.parent / "testdata" / "test_ates.esdl"
@@ -64,14 +67,6 @@ def _get_kpi_by_name(config: ProtobufDict) -> dict:
     return {kpi.name: kpi for kpi in kpi_list}
 
 
-def _run_simulator_skip_on_value_error(test_case: unittest.TestCase, config: ProtobufDict) -> None:
-    """Run the simulator, skipping the test if a ValueError is raised by the simulation engine."""
-    try:
-        _run_simulator(config)
-    except ValueError as e:
-        test_case.skipTest(f"Simulation raised ValueError unrelated to KPI warnings: {e}")
-
-
 @pytest.mark.skipif(not SIMULATOR_AVAILABLE, reason="omotes_simulator_core not installed")
 class TestKPIOutputEsdlStructureAndCostValues(unittest.TestCase):
     """Output ESDL contains a valid area with KPIs attached, and cost values match test_ates.esdl.
@@ -92,56 +87,41 @@ class TestKPIOutputEsdlStructureAndCostValues(unittest.TestCase):
             cls.kpi_by_name = (
                 {kpi.name: kpi for kpi in area.KPIs.kpi} if area.KPIs is not None else {}
             )
-        except Exception as e:
-            raise unittest.SkipTest(f"Simulator unavailable: {e}") from e
+        except RuntimeError as e:
+            raise unittest.SkipTest(f"Simulator infrastructure unavailable: {e}") from e
 
-    def test__output_esdl_is_not_none(self) -> None:
-        # Act
-        instances = self.energy_system.instance
-
-        # Assert
-        self.assertTrue(instances, "Output ESDL must have at least one instance")
-
-    def test__output_esdl_has_instance_with_area(self) -> None:
-        # Act
-        area = self.energy_system.instance[0].area
-
-        # Assert
-        self.assertIsNotNone(area, "instance[0] must have an area")
+    def test__output_esdl_has_area_with_kpis_container(self) -> None:
+        self.assertIsNotNone(
+            self.energy_system.instance[0].area.KPIs,
+            "instance[0].area must have a KPIs container",
+        )
 
     def test__kpis_attached_to_main_area(self) -> None:
-        # Arrange
         main_area = self.energy_system.instance[0].area
-
-        # Act
-        kpi_list = list(main_area.KPIs.kpi)
-
-        # Assert
         self.assertIsNotNone(main_area.KPIs, "KPIs should be present in the main area")
+        kpi_list = list(main_area.KPIs.kpi)
         self.assertGreater(len(kpi_list), 0, "At least one KPI should be calculated")
 
     def test__all_kpis_have_names(self) -> None:
-        # Arrange
         kpi_list = list(self.energy_system.instance[0].area.KPIs.kpi)
-
-        # Act / Assert
+        self.assertGreater(len(kpi_list), 0, "KPI list must not be empty")
         for kpi in kpi_list:
             self.assertIsInstance(kpi.name, str, f"KPI {kpi} name must be a string")
             self.assertTrue(kpi.name, f"KPI {kpi} must have a non-empty name")
 
     def test__cost_breakdown_kpi_is_present(self) -> None:
-        # Act
         cost_kpi_present = "High level cost breakdown [EUR]" in self.kpi_by_name
-
-        # Assert
         self.assertTrue(cost_kpi_present, "Cost breakdown KPI missing from output")
 
     def test__capex_matches_investment_costs(self) -> None:
-        # Arrange
+        self.assertIn(
+            "High level cost breakdown [EUR]",
+            self.kpi_by_name,
+            f"Cost breakdown KPI missing; got {list(self.kpi_by_name)}",
+        )
         cost_kpi = self.kpi_by_name["High level cost breakdown [EUR]"]
         cost_items = {item.label: item.value for item in cost_kpi.distribution.stringItem}
 
-        # Act / Assert
         self.assertIn("CAPEX (total)", cost_items, f"CAPEX key missing; got {cost_items}")
         self.assertAlmostEqual(
             cost_items["CAPEX (total)"],
@@ -151,11 +131,14 @@ class TestKPIOutputEsdlStructureAndCostValues(unittest.TestCase):
         )
 
     def test__opex_matches_fixed_maintenance_costs(self) -> None:
-        # Arrange
+        self.assertIn(
+            "High level cost breakdown [EUR]",
+            self.kpi_by_name,
+            f"Cost breakdown KPI missing; got {list(self.kpi_by_name)}",
+        )
         cost_kpi = self.kpi_by_name["High level cost breakdown [EUR]"]
         cost_items = {item.label: item.value for item in cost_kpi.distribution.stringItem}
 
-        # Act / Assert
         self.assertIn("OPEX (yearly)", cost_items, f"OPEX key missing; got {cost_items}")
         self.assertAlmostEqual(
             cost_items["OPEX (yearly)"],
@@ -177,15 +160,15 @@ class TestAllKPICategories(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        debug_dir = tempfile.mkdtemp(prefix="debug_esdl_")
+        cls.addClassCleanup(shutil.rmtree, debug_dir, True)
         config = _default_config()
         config["debug_esdl"] = True
-        debug_dir = tempfile.mkdtemp()
         config["debug_esdl_dir"] = debug_dir
-        cls.addClassCleanup(shutil.rmtree, debug_dir)
         try:
             cls.kpi_by_name = _get_kpi_by_name(config)
-        except Exception as e:
-            raise unittest.SkipTest(f"Simulator unavailable: {e}") from e
+        except RuntimeError as e:
+            raise unittest.SkipTest(f"Simulator infrastructure unavailable: {e}") from e
 
     def test__net_present_value_kpi_is_present(self) -> None:
         self.assertIn("Net Present Value [EUR]", self.kpi_by_name)
@@ -194,33 +177,20 @@ class TestAllKPICategories(unittest.TestCase):
         self.assertIn("Energy breakdown [Wh]", self.kpi_by_name)
 
 
-@pytest.mark.skipif(not SIMULATOR_AVAILABLE, reason="omotes_simulator_core not installed")
 class TestKPIDefaultWarnings(unittest.TestCase):
-    """Warnings are emitted when KPI config keys are absent from workflow_config."""
+    """_parse_float_config emits a warning when a KPI config key is absent."""
 
-    def test__missing_system_lifetime__warns(self) -> None:
-        # Arrange
-        config = _default_config()
-        del config["system_lifetime"]
+    def test__missing_kpi_config_key__warns(self) -> None:
+        cases = [
+            ("system_lifetime", DEFAULT_SYSTEM_LIFETIME_YEARS),
+            ("discount_rate", DEFAULT_DISCOUNT_RATE_PERCENT),
+        ]
+        for key, default in cases:
+            with self.subTest(key=key):
+                sentinel = f"missing-{key}-sentinel"
 
-        # Act / Assert
-        with self.assertLogs("simulator_worker", level=logging.WARNING) as cm:
-            _run_simulator_skip_on_value_error(self, config)
+                with self.assertLogs("simulator_worker", level=logging.WARNING) as cm:
+                    result = _parse_float_config({}, key, default, warn_msg=sentinel)
 
-        self.assertTrue(
-            any("system_lifetime" in msg for msg in cm.output),
-            f"Expected 'system_lifetime' warning; got: {cm.output}",
-        )
-
-    def test__missing_discount_rate__warns(self) -> None:
-        # Arrange — discount_rate is not in the default config, so the warning fires
-        config = _default_config()
-
-        # Act / Assert
-        with self.assertLogs("simulator_worker", level=logging.WARNING) as cm:
-            _run_simulator_skip_on_value_error(self, config)
-
-        self.assertTrue(
-            any("discount_rate" in msg for msg in cm.output),
-            f"Expected 'discount_rate' warning; got: {cm.output}",
-        )
+                self.assertEqual(result, default)
+                self.assertIn(sentinel, " ".join(cm.output))

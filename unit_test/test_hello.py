@@ -36,6 +36,9 @@ class TestParseBoolConfig(unittest.TestCase):
         ("absent_key", {}, "flag", True, True),
         ("string_false", {"flag": "false"}, "flag", True, False),
         ("string_true", {"flag": "true"}, "flag", False, True),
+        ("string_one", {"flag": "1"}, "flag", False, True),
+        ("string_yes", {"flag": "yes"}, "flag", False, True),
+        ("int_one", {"flag": 1}, "flag", False, True),
         ("unrecognized_string", {"flag": "maybe"}, "flag", True, False),
     ])
     def test_parse_bool_config(
@@ -62,54 +65,41 @@ class TestParseFloatConfig(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test__present_int_value__returns_float_type(self) -> None:
-        # Arrange
         config: dict = {"lifetime": 25}
 
-        # Act
         result = _parse_float_config(config, "lifetime", 30.0)
 
-        # Assert
         self.assertIsInstance(result, float)
+        self.assertEqual(result, 25.0)
 
     def test__absent_key_with_warn_msg__emits_warning(self) -> None:
-        # Arrange
         config: dict = {}
 
-        # Act / Assert
         with self.assertLogs("simulator_worker", level=logging.WARNING) as cm:
             _parse_float_config(config, "lifetime", 30.0, warn_msg="missing 'lifetime'.")
 
-        self.assertTrue(any("missing" in msg for msg in cm.output))
+        self.assertIn("missing 'lifetime'.", " ".join(cm.output))
 
     def test__present_key_with_warn_msg__no_warning(self) -> None:
-        # Arrange
         config: dict = {"lifetime": 25.0}
 
-        # Act — no warning should be emitted
         with self.assertNoLogs("simulator_worker", level=logging.WARNING):
             result = _parse_float_config(
                 config, "lifetime", 30.0, warn_msg="missing 'lifetime'."
             )
 
-        # Assert
         self.assertEqual(result, 25.0)
 
 
 class TestHelloWorld(unittest.TestCase):
-    def test__hello_world(self) -> None:
-        print("Hello world!")
-
     def test__add_datetime_index__happy_path(self) -> None:
-        # Arrange
         df = pandas.DataFrame()
         start_time = datetime.datetime.now()
         end_time = start_time + datetime.timedelta(hours=1)
         timestep = datetime.timedelta(minutes=30)
 
-        # Act
         result_df = add_datetime_index(
             df, start_time, end_time, math.floor(timestep.total_seconds())
         )
 
-        # Assert
         self.assertEqual(len(result_df), 2)
