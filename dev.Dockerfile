@@ -1,23 +1,34 @@
 FROM python:3.11-slim-bookworm
 
-WORKDIR /app/simulator_worker
+# WORKDIR /app/simulator_worker
 
-# Install OpenJDK-17
-RUN apt-get -y update  && \
-    apt-get install -y openjdk-17-jdk && \
-    apt-get clean;
+# install uv
+COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
 
-COPY simulator-worker/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+WORKDIR /src
 
-COPY simulator-worker/  /app/simulator_worker/
-WORKDIR /app/simulator_worker
-RUN pip install .
+# Install required tools and OpenJDK 21 manually
+RUN apt-get update && \
+    apt-get install -y wget tar ca-certificates && \
+    apt-get clean && \
+    wget https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_linux-x64_bin.tar.gz && \
+    tar -xzf openjdk-21.0.2_linux-x64_bin.tar.gz && \
+    mv jdk-21.0.2 /usr/local/openjdk-21 && \
+    rm openjdk-21.0.2_linux-x64_bin.tar.gz
 
-# Install local versions of sdk and protocol
-COPY ../omotes-sdk-protocol/python/ /omotes-sdk-protocol/python/
-COPY ../omotes-sdk-python/ /omotes-sdk-python/
-RUN pip install /omotes-sdk-python/
-RUN pip install /omotes-sdk-protocol/python/
+# Set environment variables for Java
+ENV JAVA_HOME=/usr/local/openjdk-21
+ENV PATH="$JAVA_HOME/bin:$PATH"
 
-ENTRYPOINT ["simulator_worker"]
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=simulator-worker/uv.lock,target=uv.lock \
+    --mount=type=bind,source=simulator-worker/pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
+# enable running commands without 'uv run'
+ENV PATH="/src/.venv/bin:$PATH"
+
+# install omotes-sdk-python from local code
+COPY omotes-sdk-python/ /omotes-sdk-python/
+RUN uv pip install --python /src/.venv/bin/python /omotes-sdk-python/
+
+COPY simulator-worker/src .

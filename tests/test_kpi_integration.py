@@ -5,62 +5,90 @@ import logging
 import shutil
 import tempfile
 import unittest
+from os import environ
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, Dict
-from unittest.mock import MagicMock, patch
+from typing import TYPE_CHECKING, Any, ClassVar, cast
+from unittest.mock import patch
 
 import pytest
-from omotes_sdk.types import ProtobufDict
+from prefect.states import State
+
+from simulator_worker.prefect_flow import SimulatorFlowResult
 
 if TYPE_CHECKING:
     import esdl
 
 # Check if full simulator worker can be imported
 SIMULATOR_AVAILABLE = False
+pyesdl_from_string: Any = None
+simulator_flow: Any = None
 try:
-    from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
+    from omotes_simulator_core.infrastructure.utils import pyesdl_from_string as _pyesdl_from_string
 
-    from simulator_worker.simulator_worker import simulator_worker_task
+    from simulator_worker.prefect_flow import simulator_flow as _simulator_flow
 
+    pyesdl_from_string = _pyesdl_from_string
+    simulator_flow = _simulator_flow
     SIMULATOR_AVAILABLE = True
 except ImportError:
-    simulator_worker_task = None  # type: ignore[assignment, misc]
-    pyesdl_from_string = None  # type: ignore[assignment, misc]
+    pass
 
 from kpicalculator import DEFAULT_DISCOUNT_RATE_PERCENT, DEFAULT_SYSTEM_LIFETIME_YEARS  # noqa: E402
+
 from simulator_worker.utils import _parse_float_config  # noqa: E402
 
+MINIO_TEST_ENV = {
+    "MINIO_HOST": "minio",
+    "MINIO_PORT": "9000",
+    "MINIO_ACCESS_KEY": "access",
+    "MINIO_SECRET": "secret",
+}
 
-def _run_simulator(workflow_config: ProtobufDict) -> tuple:
+
+def _run_simulator(workflow_config: dict) -> SimulatorFlowResult | State[Any] | None:
     test_esdl_path = Path(__file__).parent.parent / "testdata" / "test_ates.esdl"
-    with open(test_esdl_path, "r") as f:
+    with open(test_esdl_path) as f:
         input_esdl = f.read()
 
-    mock_progress = MagicMock()
+    with (
+        patch.dict(environ, MINIO_TEST_ENV, clear=False),
+        patch("simulator_worker.utils.InfluxDBProfileManager") as profile_manager_cls,
+    ):
+        profile_manager_cls.return_value.profile_header = ["datetime"]
+        profile_manager_cls.return_value.save_influxdb.return_value = None
 
-    with patch("simulator_worker.utils.InfluxDBProfileManager"):
-        return simulator_worker_task(input_esdl, workflow_config, mock_progress, "simulator")
+        return simulator_flow.fn(input_esdl, workflow_config, "simulator")
 
 
-def _default_config() -> ProtobufDict:
-    start_time = datetime.datetime(2019, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
-    end_time = datetime.datetime(2019, 1, 1, 2, 0, tzinfo=datetime.timezone.utc)
+def _default_config() -> dict:
+    start_time = datetime.datetime(2019, 1, 1, 0, 0, tzinfo=datetime.UTC)
+    end_time = datetime.datetime(2019, 1, 1, 2, 0, tzinfo=datetime.UTC)
     return {
         "timestep": 3600.0,
-        "start_time": start_time.timestamp(),
-        "end_time": end_time.timestamp(),
+        "start_time": start_time.isoformat(),
+        "end_time": end_time.isoformat(),
         "system_lifetime": 30.0,
     }
 
 
-def _get_energy_system(config: ProtobufDict) -> "esdl.EnergySystem":
+def _get_energy_system(config: dict) -> "esdl.EnergySystem":
     """Helper: Run simulator and return parsed energy system."""
-    output_esdl, _ = _run_simulator(config)
+    if pyesdl_from_string is None:
+        raise RuntimeError("pyesdl parser is unavailable")
+
+    result = _run_simulator(config)
+    if isinstance(result, SimulatorFlowResult) and isinstance(result.output_esdl, str):
+        output_esdl = result.output_esdl
+    elif isinstance(result, State):
+        raise RuntimeError(f"Simulator flow failed with state: {result}")
+    else:
+        raise RuntimeError("Simulator flow did not return output ESDL")
+
     esh = pyesdl_from_string(output_esdl)
     return esh.energy_system
 
 
-def _get_kpi_by_name(config: ProtobufDict) -> dict:
+def _get_kpi_by_name(config: dict) -> dict:
     """Helper: Run simulator and return KPIs indexed by name."""
     energy_system = _get_energy_system(config)
     kpi_list = list(energy_system.instance[0].area.KPIs.kpi)
@@ -77,16 +105,14 @@ class TestKPIOutputEsdlStructureAndCostValues(unittest.TestCase):
     """
 
     energy_system: ClassVar["esdl.EnergySystem"]
-    kpi_by_name: ClassVar[Dict[str, "esdl.KPI"]]
+    kpi_by_name: ClassVar[dict[str, "esdl.KPI"]]
 
     @classmethod
     def setUpClass(cls) -> None:
         try:
             cls.energy_system = _get_energy_system(_default_config())
             area = cls.energy_system.instance[0].area
-            cls.kpi_by_name = (
-                {kpi.name: kpi for kpi in area.KPIs.kpi} if area.KPIs is not None else {}
-            )
+            cls.kpi_by_name = {kpi.name: kpi for kpi in area.KPIs.kpi} if area.KPIs is not None else {}
         except RuntimeError as e:
             raise unittest.SkipTest(f"Simulator infrastructure unavailable: {e}") from e
 
@@ -120,7 +146,7 @@ class TestKPIOutputEsdlStructureAndCostValues(unittest.TestCase):
             f"Cost breakdown KPI missing; got {list(self.kpi_by_name)}",
         )
         cost_kpi = self.kpi_by_name["High level cost breakdown [EUR]"]
-        cost_items = {item.label: item.value for item in cost_kpi.distribution.stringItem}
+        cost_items = {item.label: item.value for item in cast(Any, cost_kpi).distribution.stringItem}
 
         self.assertIn("CAPEX (total)", cost_items, f"CAPEX key missing; got {cost_items}")
         self.assertAlmostEqual(
@@ -137,7 +163,7 @@ class TestKPIOutputEsdlStructureAndCostValues(unittest.TestCase):
             f"Cost breakdown KPI missing; got {list(self.kpi_by_name)}",
         )
         cost_kpi = self.kpi_by_name["High level cost breakdown [EUR]"]
-        cost_items = {item.label: item.value for item in cost_kpi.distribution.stringItem}
+        cost_items = {item.label: item.value for item in cast(Any, cost_kpi).distribution.stringItem}
 
         self.assertIn("OPEX (yearly)", cost_items, f"OPEX key missing; got {cost_items}")
         self.assertAlmostEqual(
@@ -156,7 +182,7 @@ class TestAllKPICategories(unittest.TestCase):
     It enables debug_esdl so the output ESDL is saved as a CI artifact for inspection.
     """
 
-    kpi_by_name: ClassVar[Dict[str, "esdl.KPI"]]
+    kpi_by_name: ClassVar[dict[str, "esdl.KPI"]]
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -189,7 +215,7 @@ class TestKPIDefaultWarnings(unittest.TestCase):
             with self.subTest(key=key):
                 sentinel = f"missing-{key}-sentinel"
 
-                with self.assertLogs("simulator_worker", level=logging.WARNING) as cm:
+                with self.assertLogs(level=logging.WARNING) as cm:
                     result = _parse_float_config({}, key, default, warn_msg=sentinel)
 
                 self.assertEqual(result, default)

@@ -1,6 +1,6 @@
 [project]
 name = "simulator-worker"
-dynamic = ["version"]
+version = "0.0.1"
 authors = [{ name = "Michiel Tukker", email = "michiel.tukker@deltares.nl" }]
 description = "Nieuwe Warmte Nu / OMOTES: simulator-worker."
 readme = "README.md"
@@ -19,35 +19,27 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 
+requires-python = "==3.11.*"
 dependencies = [
     "python-dotenv ~= 1.0.0",
-    "omotes-sdk-python ~= 4.3.3",
+    "omotes-sdk-python ~= 5.0.2",
     "omotes-simulator-core==0.0.30",
     "pyesdl==26.2",
     "pandas ~= 2.2.2",
     "kpi-calculator==0.4.3rc0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "setuptools ~= 75.6.0",
     "wheel ~= 0.45.1",
-    "setuptools-git-versioning >= 2.0, < 3",
-    "black ~= 24.10.0",
-    "flake8 == 7.1.1",
-    "flake8-pyproject ~= 1.2.3",
-    "flake8-docstrings ~= 1.7.0",
-    "flake8-quotes ~= 3.4.0",
-    "flake8-bugbear ~= 24.10.31",
-    "flake8-mock ~= 0.4",
-    "flake8-tuple ~= 0.4.1",
+    "parameterized ~= 0.9.0",
+    "pip-tools ~= 7.4.0",
+    "ruff ~= 0.15.22",
+    "ty ~= 0.0.61",
     "pytest ~= 8.3.4",
     "pytest-cov ~= 6.0.0",
-    "parameterized ~= 0.9.0",
-    "mypy ~= 1.13.0",
-    "isort == 5.13.2",
     "build ~= 1.2.2",
-    "pandas-stubs ~= 2.1.1",
 ]
 
 [project.urls]
@@ -56,16 +48,15 @@ documentation = "https://readthedocs.org"
 repository = "https://github.com/Nieuwe-Warmte-Nu/simulator-worker"
 changelog = "https://github.com/Nieuwe-Warmte-Nu/simulator-worker/blob/main/CHANGELOG.md"
 
-[project.scripts]
-simulator_worker = "simulator_worker:start_app"
+# [project.scripts]
+# simulator_worker = "simulator_worker:start_app"
 
 [build-system]
-build-backend = "setuptools.build_meta"
-requires = [
-    "setuptools ~= 75.6.0",
-    "wheel ~= 0.45.1",
-    "setuptools-git-versioning >= 2.0, < 3",
-]
+requires = ["uv_build>=0.11.29,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "simulator_worker"
 
 [tool.setuptools-git-versioning]
 enabled = true
@@ -73,53 +64,48 @@ starting_version = "0.0.1"
 
 [tool.pytest.ini_options]
 addopts = "--cov=simulator_worker --cov-report=html --cov-report=term-missing --cov-fail-under=20"
-testpaths = ["unit_test"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
 
 [tool.coverage.run]
 source = ["src"]
 
-[tool.flake8]
-exclude = ['.venv/*', 'venv/*', 'doc/*']
-ignore = [
-    'Q000', # Remove bad quotes
-    'D401', # Docstring First line should be imperative
-    'E203', # Space before colon (not PEP-8 compliant, and conflicts with black)
-    'C408', # Suggestion to use dict() over {}
-    'W503', # Starting lines with operators.
-    'D104', # Missing docstring in public package
-    'D100'  # Missing docstring in public module
+[tool.ruff]
+line-length = 120
+preview = true
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "W",
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "I",   # isort
+    "D",   # pydocstyle
+    "ANN", # flake8-annotations
+    "DOC", # flake8-docstrings
+    "S",   # flake8-bandit
 ]
-per-file-ignores = ['__init__.py:F401', 'test_*.py:D100,D101,D102,D103']
-max-line-length = 100
-count = true
+ignore = [
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+]
+exclude = ["justfile", ".editorconfig"]
 
-[tool.black]
-line-length = 100
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
-[tool.isort]
-profile = "black"
-
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-exclude = ['.venv/*', 'venv/*', 'doc/*', 'ci/*']
-
-# mypy per-module options:
-[[tool.mypy.overrides]]
-module = ["unit_test.*", "coloredlogs.*"]
-check_untyped_defs = true
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "esdl.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "parameterized.*"
-ignore_missing_imports = true
-
-
+[tool.ruff.lint.per-file-ignores]
+"src/env.py" = [
+    "DOC201", # Simple getter methods in EnvSettings use concise one-line docstrings.
+]
+"tests/**" = [
+    "D101",   # Test classes do not require class docstrings.
+    "D102",   # Test methods do not require method docstrings.
+    "D103",   # Test helper functions do not require function docstrings.
+    "DOC201", # Test docstrings do not require explicit Returns sections.
+    "DOC501", # Test docstrings do not require explicit Raises sections.
+    "S101",   # assert statements are standard in tests.
+]
