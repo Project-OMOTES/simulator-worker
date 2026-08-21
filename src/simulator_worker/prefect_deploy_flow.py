@@ -7,7 +7,7 @@ from omotes_sdk.prefect_util import deploy_flow
 from simulator_worker.env import EnvSettings
 from simulator_worker.prefect_flow import simulator_flow
 
-deployment_base_name = "omotes-simulator"
+deployment_base_name = "omotes-simulator-worker"
 
 
 async def _build_docker_image(command: list[str], cwd: Path | None = None) -> None:
