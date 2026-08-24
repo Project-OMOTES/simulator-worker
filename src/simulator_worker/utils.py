@@ -361,7 +361,10 @@ def _parse_datetime_config(config: dict, key: str, default: datetime, warn_msg: 
         return default
 
     try:
-        return datetime.fromisoformat(value)
+        normalized = value.strip()
+        if normalized.endswith(("Z", "z")):
+            normalized = f"{normalized[:-1]}+00:00"
+        return datetime.fromisoformat(normalized)
     except ValueError:
         return default
 

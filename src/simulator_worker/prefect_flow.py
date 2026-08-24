@@ -81,9 +81,22 @@ def simulator_flow(
         minio_secret = os.environ.get("MINIO_SECRET")
 
         if minio_host is None or minio_port is None or minio_access_key is None or minio_secret is None:
+            missing_credential_vars = [
+                name
+                for name, value in {
+                    "MINIO_ACCESS_KEY": minio_access_key,
+                    "MINIO_SECRET": minio_secret,
+                }.items()
+                if value is None
+            ]
+            missing_credential_msg = (
+                f" Missing environment variables: {', '.join(missing_credential_vars)}."
+                if missing_credential_vars
+                else ""
+            )
             raise ValueError(
-                f"MinIO credentials are not fully set. MinIO host: {minio_host}, port: {minio_port}, "
-                f"access key: {minio_access_key}, secret key: {minio_secret}"
+                f"MinIO credentials are not fully set. MinIO host: '{minio_host}', port: '{minio_port}'."
+                f"{missing_credential_msg}"
             )
 
         try:

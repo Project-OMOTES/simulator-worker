@@ -51,7 +51,7 @@ In vscode go to the debug view and run `prefect_deploy_flow`.\
 This will create a deployment on prefect (to the prefect instance on `PREFECT_API_URL`).\
 
 During development you may want to deploy local code of this repo instead of an already published image, then set `PREFECT_USE_LOCAL_CODE_AND_IMAGE=true` in `.env`.
-To also use local code for the omoted-sdk-python set `PREFECT_USE_LOCAL_SDK=true` as well.
+To also use local code for the omotes-sdk-python set `PREFECT_USE_LOCAL_SDK=true` as well.
 
 ## Project Structure
 
