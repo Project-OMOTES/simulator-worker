@@ -1,5 +1,4 @@
 import logging
-import os
 from contextlib import nullcontext
 from datetime import datetime
 from typing import Any
@@ -63,7 +62,7 @@ def simulator_flow(
         returned from this flow function.
 
     Raises:
-        ValueError: If MinIO credentials are not fully set.
+        ValueError: If the simulator returns no results.
 
     """
     logging.info("Starting simulator flow with workflow type: %s", workflow_type_name)
@@ -75,29 +74,11 @@ def simulator_flow(
     # Capture and forward solver output only during orchestrated Prefect flow runs.
     capture_session = StdCaptureToLogSession() if in_prefect_flow_context() else nullcontext()
     with capture_session:
-        minio_host = os.environ.get("MINIO_HOST")
-        minio_port = os.environ.get("MINIO_PORT")
-        minio_access_key = os.environ.get("MINIO_ACCESS_KEY")
-        minio_secret = os.environ.get("MINIO_SECRET")
-
-        if minio_host is None or minio_port is None or minio_access_key is None or minio_secret is None:
-            missing_credential_vars = [
-                name
-                for name, value in {
-                    "MINIO_ACCESS_KEY": minio_access_key,
-                    "MINIO_SECRET": minio_secret,
-                }.items()
-                if value is None
-            ]
-            missing_credential_msg = (
-                f" Missing environment variables: {', '.join(missing_credential_vars)}."
-                if missing_credential_vars
-                else ""
-            )
-            raise ValueError(
-                f"MinIO credentials are not fully set. MinIO host: '{minio_host}', port: '{minio_port}'."
-                f"{missing_credential_msg}"
-            )
+        minio_host = EnvSettings.minio_host()
+        minio_host_external = EnvSettings.minio_host_external()
+        minio_port = EnvSettings.minio_port()
+        minio_access_key = EnvSettings.minio_access_key()
+        minio_secret = EnvSettings.minio_secret()
 
         try:
             logging.info(f"workflow config: {workflow_config}")
@@ -195,7 +176,14 @@ def simulator_flow(
                 esdl_messages=[],
             )
 
-            write_flow_return_artifact_to_minio(success_result, minio_host, minio_port, minio_access_key, minio_secret)
+            write_flow_return_artifact_to_minio(
+                success_result,
+                minio_host,
+                minio_port,
+                minio_access_key,
+                minio_secret,
+                minio_host_external,
+            )
 
             # return only for local runs and testing, not persisted for containerized runs: artifacts are used
             return success_result
@@ -206,6 +194,13 @@ def simulator_flow(
                 output_esdl=None,
                 esdl_messages=[],
             )
-            write_flow_return_artifact_to_minio(failed_result, minio_host, minio_port, minio_access_key, minio_secret)
+            write_flow_return_artifact_to_minio(
+                failed_result,
+                minio_host,
+                minio_port,
+                minio_access_key,
+                minio_secret,
+                minio_host_external,
+            )
 
             return Failed(message=f"Simulator flow failed: {e}")
