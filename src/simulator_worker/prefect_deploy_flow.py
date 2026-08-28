@@ -40,7 +40,7 @@ job_variables = {
         "INFLUXDB_PASSWORD": EnvSettings.influxdb_password(),
         "MINIO_HOST": EnvSettings.minio_host(),
         "MINIO_PORT": EnvSettings.minio_port(),
-        "MINIO_HOST_EXTERNAL": EnvSettings.minio_host_external(),
+        "MINIO_EXTERNAL_URL": EnvSettings.minio_external_url(),
         "MINIO_ACCESS_KEY": EnvSettings.minio_access_key(),
         "MINIO_SECRET": EnvSettings.minio_secret(),
         "PREFECT_FLOW_TIMEOUT_SECONDS": str(EnvSettings.prefect_flow_timeout_seconds()),

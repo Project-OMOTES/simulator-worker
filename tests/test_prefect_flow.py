@@ -6,7 +6,7 @@ from simulator_worker.prefect_flow import SimulatorFlowResult, simulator_flow
 
 MINIO_TEST_ENV = {
     "MINIO_HOST": "minio",
-    "MINIO_HOST_EXTERNAL": "localhost",
+    "MINIO_EXTERNAL_URL": "localhost",
     "MINIO_PORT": "9000",
     "MINIO_ACCESS_KEY": "access",
     "MINIO_SECRET": "secret",
