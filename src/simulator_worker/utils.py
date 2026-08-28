@@ -13,14 +13,13 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """utility functions for simulator-worker."""
+
 import logging
 import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Type, TypeVar, cast
-
-from omotes_sdk.types import ProtobufDict
+from typing import Any, TypeVar, cast
 
 import esdl
 import omotes_simulator_core
@@ -31,19 +30,24 @@ from esdl.profiles.influxdbprofilemanager import (
 )
 from esdl.profiles.profilemanager import ProfileManager
 from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
-
-logger = logging.getLogger("simulator_worker")
+from prefect.runtime import flow_run
 
 T = TypeVar("T")
 
 
-def id_to_esdl_item(id: str, energy_system: esdl.EnergySystem, item_type: Type[T]) -> T:
+def id_to_esdl_item(id: str, energy_system: esdl.EnergySystem, item_type: type[T]) -> T:
     """Finds the esdl item for a given ID. This method currently only supports Assets and Ports.
 
-    :param id: The ID of the asset to find.
-    :param energy_system: The energy system to search in.
-    :return: The esdl item with the given ID.
-    :raises ValueError: If the asset with the given ID is not found.
+    Args:
+        id: The ID of the asset to find.
+        energy_system: The energy system to search in.
+        item_type: The expected item type.
+
+    Returns:
+        The ESDL item with the given ID and expected type.
+
+    Raises:
+        ValueError: If the item does not exist or has an unexpected type.
     """
     item = next((x for x in energy_system.eAllContents() if hasattr(x, "id") and x.id == id), None)
     if item is None:
@@ -56,10 +60,15 @@ def id_to_esdl_item(id: str, energy_system: esdl.EnergySystem, item_type: Type[T
 def find_asset_from_port(id: str, energy_system: esdl.EnergySystem) -> esdl.Asset:
     """Finds the esdl asset for a given port id.
 
-    :param id: The ID of the asset to find.
-    :param energy_system: The energy system to search in.
-    :return: The asset ID that owns the given port.
-    :raises ValueError: If the asset with the given ID is not found.
+    Args:
+        id: The ID of the port to find.
+        energy_system: The energy system to search in.
+
+    Returns:
+        The asset that owns the given port.
+
+    Raises:
+        ValueError: If no asset contains the given port ID.
     """
     for asset in energy_system.eAllContents():
         if not isinstance(asset, esdl.Asset):
@@ -70,122 +79,104 @@ def find_asset_from_port(id: str, energy_system: esdl.EnergySystem) -> esdl.Asse
     raise ValueError(f"port {id} does not exist in this energy system")
 
 
-def add_datetime_index(
-    df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int
-) -> pd.DataFrame:
+def add_datetime_index(df: pd.DataFrame, starttime: datetime, endtime: datetime, timestep: int) -> pd.DataFrame:
     """Create new datetime column in df based on start and end time range.
 
-    :param df: The dataframe to add the datetime index to.
-    :param starttime: The start time of the datetime index.
-    :param endtime: The end time of the datetime index.
-    :param timestep: The timestep of the datetime index in seconds.
-    :return: The dataframe with the datetime index added.
+    Args:
+        df: The dataframe to add the datetime index to.
+        starttime: The start time of the datetime index.
+        endtime: The end time of the datetime index.
+        timestep: The timestep of the datetime index in seconds.
+
+    Returns:
+        The dataframe with a datetime index.
     """
-    df["datetime"] = pd.date_range(
-        start=starttime, end=endtime, freq=f"{timestep}s", inclusive="left"
-    )
+    df["datetime"] = pd.date_range(start=starttime, end=endtime, freq=f"{timestep}s", inclusive="left")
     df.set_index("datetime", inplace=True)
     return df
 
 
-def get_profileQuantityAndUnit(property_name: str) -> Optional[esdl.esdl.QuantityAndUnitType]:
+def get_profileQuantityAndUnit(property_name: str) -> esdl.esdl.QuantityAndUnitType | None:
     """Get the profile quantity and unit.
 
-    :param property_name: The name of the property to get the quantity and unit for.
-    :return: The quantity and unit for the given property name, or None if unknown.
+    Args:
+        property_name: The name of the property to map.
+
+    Returns:
+        The quantity and unit for the given property name, or None if unknown.
     """
+    physical_quantity_enum = cast(Any, esdl.PhysicalQuantityEnum)
+    unit_enum = cast(Any, esdl.UnitEnum)
+    time_unit_enum = cast(Any, esdl.TimeUnitEnum)
+    multiplier_enum = cast(Any, esdl.MultiplierEnum)
+
     if property_name.startswith("mass_flow"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
-            unit=esdl.UnitEnum.GRAM,
-            perTimeUnit=esdl.TimeUnitEnum.SECOND,
-            multiplier=esdl.MultiplierEnum.KILO,
+            physicalQuantity=physical_quantity_enum.FLOW,
+            unit=unit_enum.GRAM,
+            perTimeUnit=time_unit_enum.SECOND,
+            multiplier=multiplier_enum.KILO,
         )
     elif property_name.startswith("pressure"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.PRESSURE,
-            unit=esdl.UnitEnum.PASCAL,
-            multiplier=esdl.MultiplierEnum.NONE,
+            physicalQuantity=physical_quantity_enum.PRESSURE,
+            unit=unit_enum.PASCAL,
+            multiplier=multiplier_enum.NONE,
         )
     elif property_name.startswith("temperature"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.TEMPERATURE,
-            unit=esdl.UnitEnum.KELVIN,
-            multiplier=esdl.MultiplierEnum.NONE,
+            physicalQuantity=physical_quantity_enum.TEMPERATURE,
+            unit=unit_enum.KELVIN,
+            multiplier=multiplier_enum.NONE,
         )
     elif property_name.startswith("volume_flow"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
-            unit=esdl.UnitEnum.CUBIC_METRE,
-            perTimeUnit=esdl.TimeUnitEnum.SECOND,
-            multiplier=esdl.MultiplierEnum.NONE,
+            physicalQuantity=physical_quantity_enum.FLOW,
+            unit=unit_enum.CUBIC_METRE,
+            perTimeUnit=time_unit_enum.SECOND,
+            multiplier=multiplier_enum.NONE,
         )
     elif property_name.startswith("pressure_loss_per_length"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.PRESSURE,
-            perMultiplier=esdl.MultiplierEnum.METRE,
-            unit=esdl.UnitEnum.PASCAL,
-            multiplier=esdl.MultiplierEnum.NONE,
+            physicalQuantity=physical_quantity_enum.PRESSURE,
+            perMultiplier=multiplier_enum.METRE,
+            unit=unit_enum.PASCAL,
+            multiplier=multiplier_enum.NONE,
         )
     elif property_name.startswith("pressure_loss"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.PRESSURE,
-            unit=esdl.UnitEnum.PASCAL,
-            multiplier=esdl.MultiplierEnum.NONE,
+            physicalQuantity=physical_quantity_enum.PRESSURE,
+            unit=unit_enum.PASCAL,
+            multiplier=multiplier_enum.NONE,
         )
-    elif property_name.startswith("heat_loss"):
+    elif (
+        property_name.startswith("heat_loss")
+        or property_name.startswith("heat_supplied")
+        or property_name.startswith("heat_demand")
+        or property_name.startswith("heat_supply_set_point")
+        or property_name.startswith("heat_demand_set_point")
+    ):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
-            unit=esdl.UnitEnum.WATT,
-            multiplier=esdl.MultiplierEnum.NONE,
-        )
-    elif property_name.startswith("heat_supplied"):
-        return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
-            unit=esdl.UnitEnum.WATT,
-            multiplier=esdl.MultiplierEnum.NONE,
-        )
-    elif property_name.startswith("heat_demand"):
-        return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
-            unit=esdl.UnitEnum.WATT,
-            multiplier=esdl.MultiplierEnum.NONE,
-        )
-    elif property_name.startswith("heat_supply_set_point"):
-        return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
-            unit=esdl.UnitEnum.WATT,
-            multiplier=esdl.MultiplierEnum.NONE,
-        )
-    elif property_name.startswith("heat_demand_set_point"):
-        return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.POWER,
-            unit=esdl.UnitEnum.WATT,
-            multiplier=esdl.MultiplierEnum.NONE,
+            physicalQuantity=physical_quantity_enum.POWER,
+            unit=unit_enum.WATT,
+            multiplier=multiplier_enum.NONE,
         )
     elif property_name.startswith("velocity"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.SPEED,
-            unit=esdl.UnitEnum.METRE,
-            perTimeUnit=esdl.TimeUnitEnum.SECOND,
-            multiplier=esdl.MultiplierEnum.NONE,
+            physicalQuantity=physical_quantity_enum.SPEED,
+            unit=unit_enum.METRE,
+            perTimeUnit=time_unit_enum.SECOND,
+            multiplier=multiplier_enum.NONE,
         )
-    elif property_name.startswith("charge rate"):
+    elif property_name.startswith("charge rate") or property_name.startswith("discharge rate"):
         return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
-            unit=esdl.UnitEnum.GRAM,
-            perTimeUnit=esdl.TimeUnitEnum.SECOND,
-            multiplier=esdl.MultiplierEnum.KILO,
-        )
-    elif property_name.startswith("discharge rate"):
-        return esdl.esdl.QuantityAndUnitType(
-            physicalQuantity=esdl.PhysicalQuantityEnum.FLOW,
-            unit=esdl.UnitEnum.GRAM,
-            perTimeUnit=esdl.TimeUnitEnum.SECOND,
-            multiplier=esdl.MultiplierEnum.KILO,
+            physicalQuantity=physical_quantity_enum.FLOW,
+            unit=unit_enum.GRAM,
+            perTimeUnit=time_unit_enum.SECOND,
+            multiplier=multiplier_enum.KILO,
         )
     else:
-        logger.info(f"Unknown property name: {property_name}")
+        logging.info(f"Unknown property name: {property_name}")
         return None
 
 
@@ -195,25 +186,32 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     Takes an input ESDL string and a dataframe. Generates an updated ESDL
     file with references to the time series stored in the database
 
-    :param input_esdl: The input ESDL file as a string.
-    :param simulation_result: The simulation result as a DataFrame.
-    :return: The output ESDL file as a string.
+    Args:
+        input_esdl: The input ESDL file as a string.
+        simulation_result: The simulation result as a DataFrame.
+
+    Returns:
+        The output ESDL file as a string.
     """
     esh = pyesdl_from_string(input_esdl)
-    input_uuid = str(esh.energy_system.id)  # store input_esdl UUID
+    input_esdl_uuid = str(esh.energy_system.id)  # store input_esdl UUID
     esh.energy_system.id = str(uuid.uuid4())
     output_uuid = esh.energy_system.id
-    logger.info("Input ESDL UUID: %s", input_uuid)
-    logger.info("Output ESDL UUID: %s", output_uuid)
-    logger.debug(simulation_result.head())
+
+    input_esdl_name = str(esh.energy_system.name)  # store input_esdl name
+    output_esdl_name = input_esdl_name + "_"
+    output_esdl_name += flow_run.name if flow_run and flow_run.name else "simulated"
+    esh.energy_system.name = output_esdl_name
+
+    logging.info("Input ESDL UUID: %s, name: %s", input_esdl_uuid, input_esdl_name)
+    logging.info("Output ESDL UUID: %s, name: %s", output_uuid, output_esdl_name)
+    logging.debug(simulation_result.head())
 
     influxdb_host = os.getenv("INFLUXDB_HOSTNAME", "localhost")
     influxdb_port = os.getenv("INFLUXDB_PORT", "8086")
     influxdb_username = os.getenv("INFLUXDB_USERNAME", "testuser")
     influxdb_password = os.getenv("INFLUXDB_PASSWORD", "")
-    logger.debug(
-        "Connecting to InfluxDB: %s@%s:%s", influxdb_username, influxdb_host, influxdb_port
-    )
+    logging.debug("Connecting to InfluxDB: %s@%s:%s", influxdb_username, influxdb_host, influxdb_port)
     influxdb_conn_settings = ConnectionSettings(
         host=influxdb_host,
         port=int(influxdb_port),
@@ -224,33 +222,28 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         verify_ssl=False,
     )
 
-    series_per_asset_id_per_carrier_id: Dict[
-        str, Dict[str, List[Tuple[Tuple[str, str], esdl.Port]]]
-    ] = {}
+    series_per_asset_id_per_carrier_id: dict[str, dict[str, list[tuple[tuple[str, str], esdl.Port]]]] = {}
 
-    series_name: Tuple[str, str]
+    series_name: tuple[str, str]
     for series_name_uncasted, _ in simulation_result.items():
-        series_name = cast(Tuple[str, str], series_name_uncasted)
+        series_name = cast(tuple[str, str], series_name_uncasted)
         port_id = series_name[0]
         port: esdl.Port = id_to_esdl_item(port_id, esh.energy_system, esdl.Port)
         carrier: esdl.Carrier = port.carrier
         profile_name = series_name[1]
-        logger.debug("Output series: %s", series_name)
+        logging.debug("Output series: %s", series_name)
         asset = find_asset_from_port(port_id, esh.energy_system)
         asset_id = asset.id
-        logger.debug("%s:\t\t %s", series_name, asset.port)
+        logging.debug("%s:\t\t %s", series_name, cast(Any, asset).port)
 
-        series_per_asset_id_for_carrier = series_per_asset_id_per_carrier_id.setdefault(
-            carrier.id, {}
-        )
+        series_per_asset_id_for_carrier = series_per_asset_id_per_carrier_id.setdefault(carrier.id, {})
         series_for_asset_id_for_carrier = series_per_asset_id_for_carrier.setdefault(asset_id, [])
         series_for_asset_id_for_carrier.append((series_name, port))
 
     datasource = esdl.esdl.DataSource(
         name="Omotes simulator core run",
         id=str(uuid.uuid4()),
-        description="This profile is a simulation results obtained "
-        "with the Omotes simulator core",
+        description="This profile is a simulation results obtained with the Omotes simulator core",
         reference="https://simulator-core.readthedocs.io/en/latest/",
         releaseDate=datetime.now(),
         version=omotes_simulator_core.__version__,
@@ -266,9 +259,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     for carrier_id in series_per_asset_id_per_carrier_id:
         for asset_id in series_per_asset_id_per_carrier_id[carrier_id]:
             asset = id_to_esdl_item(asset_id, esh.energy_system, esdl.Asset)
-            maybe_asset_capability = next(
-                (c for c in capabilities if c in asset.__class__.__mro__), None
-            )
+            maybe_asset_capability = next((c for c in capabilities if c in asset.__class__.__mro__), None)
             asset_capability = maybe_asset_capability.__name__ if maybe_asset_capability else "None"
             profiles = ProfileManager()
             profiles.profile_type = "DATETIME_LIST"
@@ -279,6 +270,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                 profile_name = series_name[1]
                 reference = esdl.esdl.DataSourceReference(reference=datasource)
                 profiles.profile_header.append(profile_name)
+                profile_type_enum = cast(Any, esdl.ProfileTypeEnum)
                 profile_attributes = esdl.InfluxDBProfile(
                     database=output_uuid,
                     measurement=carrier_id,
@@ -289,7 +281,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                     endDate=simulation_result.index[-1],
                     id=str(uuid.uuid4()),
                     filters=f"\"assetId\"='{asset_id}'",
-                    profileType=esdl.ProfileTypeEnum.OUTPUT,
+                    profileType=profile_type_enum.OUTPUT,
                     dataSource=reference,
                 )
 
@@ -299,10 +291,7 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
 
             for index, row in simulation_result.loc[
                 :,
-                [
-                    series_name
-                    for series_name, _ in series_per_asset_id_per_carrier_id[carrier_id][asset_id]
-                ],
+                [series_name for series_name, _ in series_per_asset_id_per_carrier_id[carrier_id][asset_id]],
             ].iterrows():
                 profiles.profile_data_list.append([index, *row.values.tolist()])
             profiles.num_profile_items = len(profiles.profile_data_list)
@@ -310,9 +299,10 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
             profiles.end_datetime = simulation_result.index[-1]
 
             influxdb_profile_manager = InfluxDBProfileManager(influxdb_conn_settings, profiles)
+            field_names = (influxdb_profile_manager.profile_header or [])[1:]
             influxdb_profile_manager.save_influxdb(
                 measurement=carrier_id,
-                field_names=influxdb_profile_manager.profile_header[1:],
+                field_names=field_names,
                 tags={
                     "assetClass": asset.__class__.__name__,
                     "assetId": asset_id,
@@ -322,30 +312,60 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
                     "simulation_type": "omotes-simulator",
                 },
             )
-    output_esdl = cast(str, esh.to_string())
+    output_esdl = esh.to_string()
     return output_esdl
 
 
-def _parse_bool_config(config: ProtobufDict, key: str, default: bool) -> bool:
-    """Read a bool parameter from workflow config, with Protobuf-safe string handling."""
+def _parse_bool_config(config: dict, key: str, default: bool) -> bool:
+    """Read a bool parameter from workflow config, with Protobuf-safe string handling.
+
+    Returns:
+        The parsed boolean value.
+    """
     value = config.get(key, default)
     if isinstance(value, bool):
         return value
     return str(value).lower() in ("true", "1", "yes")
 
 
-def _parse_float_config(
-    config: ProtobufDict, key: str, default: float, warn_msg: str | None = None
-) -> float:
-    """Read a float parameter from workflow config, falling back to default if absent."""
+def _parse_float_config(config: dict, key: str, default: float, warn_msg: str | None = None) -> float:
+    """Read a float parameter from workflow config, falling back to default if absent.
+
+    Returns:
+        The parsed float value.
+    """
     if key not in config:
         if warn_msg:
-            logger.warning(warn_msg)
+            logging.warning(warn_msg)
         return default
     value = config[key]
     try:
         return float(value) if isinstance(value, (int, float, str)) else default
     except (ValueError, TypeError):
+        return default
+
+
+def _parse_datetime_config(config: dict, key: str, default: datetime, warn_msg: str | None = None) -> datetime:
+    """Read an ISO-format datetime parameter from workflow config, falling back to default if absent/invalid.
+
+    Returns:
+        The parsed datetime value.
+    """
+    if key not in config:
+        if warn_msg:
+            logging.warning(warn_msg)
+        return default
+
+    value = config[key]
+    if not isinstance(value, str):
+        return default
+
+    try:
+        normalized = value.strip()
+        if normalized.endswith(("Z", "z")):
+            normalized = f"{normalized[:-1]}+00:00"
+        return datetime.fromisoformat(normalized)
+    except ValueError:
         return default
 
 
@@ -356,12 +376,15 @@ def save_debug_esdl(
 
     The directory name is `debug_esdl_{simulation_id}` under `base_dir`.
     Raises on I/O failure — callers are responsible for exception handling.
+
+    Returns:
+        The path to the directory containing the debug ESDL files.
     """
     debug_dir = Path(base_dir) / f"debug_esdl_{simulation_id}"
     debug_dir.mkdir(parents=True, exist_ok=True)
     (debug_dir / "input.esdl").write_text(input_esdl, encoding="utf-8")
     (debug_dir / "output.esdl").write_text(output_esdl, encoding="utf-8")
-    logger.info("Wrote debug ESDL files to %s", debug_dir)
+    logging.info("Wrote debug ESDL files to %s", debug_dir)
     return debug_dir
 
 
@@ -369,10 +392,10 @@ if __name__ == "__main__":
     import dotenv
 
     dotenv.load_dotenv()
-    with open(r"./testdata/test1.esdl", "r") as f:
+    with open(r"./testdata/test1.esdl") as f:
         input_esdl = f.read()
 
-    df = pd.read_pickle(r"./testdata/test1.pkl")
+    df = cast(pd.DataFrame, pd.read_pickle(r"./testdata/test1.pkl"))  # noqa: S301
     result_indexed = add_datetime_index(
         df,
         datetime.strptime("2019-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S"),
