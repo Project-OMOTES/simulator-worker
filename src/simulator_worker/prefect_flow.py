@@ -1,6 +1,5 @@
 import logging
 from contextlib import nullcontext
-from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
@@ -10,6 +9,7 @@ from kpicalculator import (
     build_esdl_string_with_kpis,
     calculate_kpis_from_simulator,
 )
+from omotes_sdk.esdl_messages import EsdlMessage, MessageSeverity
 from omotes_sdk.log_forwarding import StdCaptureToLogSession
 from omotes_sdk.prefect_util import (
     create_flow_progress_updater,
@@ -58,11 +58,12 @@ def simulator_flow(
         workflow_type_name: Name of the workflow.
 
     Returns:
-        SimulatorFlowResult | State[Any] | None: Failed state when execution fails; otherwise no value is
-        returned from this flow function.
+        SimulatorFlowResult | State[Any] | None: The flow result on success; a Failed state if execution
+        fails for any reason.
 
     Raises:
-        ValueError: If the simulator returns no results.
+        ValueError: Raised internally for invalid input (e.g. missing workflow_config keys, no simulation
+        results), but always caught and converted to a Failed state rather than propagated to the caller.
 
     """
     logging.info("Starting simulator flow with workflow type: %s", workflow_type_name)
@@ -80,22 +81,14 @@ def simulator_flow(
         minio_access_key = EnvSettings.minio_access_key()
         minio_secret = EnvSettings.minio_secret()
 
+        esdl_messages: list[EsdlMessage] = []
         try:
             logging.info(f"workflow config: {workflow_config}")
-            # timestep = workflow_config.get("timestep", 3600)  # default to 1 hour in seconds
-            # start = datetime.fromisoformat(workflow_config.get("start_time", "2019-01-01T00:00:00+00:00"))
-            # end = datetime.fromisoformat(workflow_config.get("end_time", "2019-01-31T01:00:00+00:00"))
+            if "timestep" not in workflow_config:
+                raise ValueError("workflow_config missing required key 'timestep'.")
             timestep = workflow_config["timestep"]
-            start = _parse_datetime_config(
-                workflow_config,
-                "start_time",
-                datetime.fromisoformat("2019-01-01T00:00:00+00:00"),
-            )
-            end = _parse_datetime_config(
-                workflow_config,
-                "end_time",
-                datetime.fromisoformat("2019-01-31T01:00:00+00:00"),
-            )
+            start = _parse_datetime_config(workflow_config, "start_time")
+            end = _parse_datetime_config(workflow_config, "end_time")
 
             simulation_id = uuid4()
             config = SimulationConfiguration(
@@ -157,13 +150,18 @@ def simulator_flow(
                     len(kpi_results["asset_financials"]),
                 )
                 output_esdl_with_kpis = build_esdl_string_with_kpis(output_esdl, kpi_results)
-            except Exception:
+            except Exception as kpi_error:
                 logging.exception("KPI calculation failed. Results will be returned without KPIs.")
                 output_esdl_with_kpis = output_esdl
+                esdl_messages.append(
+                    EsdlMessage(
+                        technical_message=f"KPI calculation failed: {kpi_error}",
+                        severity=MessageSeverity.WARNING,
+                    )
+                )
 
             # Debug output: save ESDL files if enabled (can be controlled via workflow_config)
-            # debug_enabled = _parse_bool_config(workflow_config, "debug_esdl", False)
-            debug_enabled = False
+            debug_enabled = _parse_bool_config(workflow_config, "debug_esdl", False)
             if debug_enabled:
                 debug_base = str(workflow_config.get("debug_esdl_dir", "."))
                 try:
@@ -173,7 +171,7 @@ def simulator_flow(
 
             success_result = SimulatorFlowResult(
                 output_esdl=output_esdl_with_kpis,
-                esdl_messages=[],
+                esdl_messages=[m.model_dump(mode="json") for m in esdl_messages],
             )
 
             write_flow_return_artifact_to_minio(
@@ -189,10 +187,16 @@ def simulator_flow(
             return success_result
         except Exception as e:
             logging.exception("Exception during simulator flow")
+            esdl_messages.append(
+                EsdlMessage(
+                    technical_message=f"Simulator flow failed: {e}",
+                    severity=MessageSeverity.ERROR,
+                )
+            )
 
             failed_result = SimulatorFlowResult(
                 output_esdl=None,
-                esdl_messages=[],
+                esdl_messages=[m.model_dump(mode="json") for m in esdl_messages],
             )
             write_flow_return_artifact_to_minio(
                 failed_result,
