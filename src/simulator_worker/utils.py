@@ -345,28 +345,26 @@ def _parse_float_config(config: dict, key: str, default: float, warn_msg: str | 
         return default
 
 
-def _parse_datetime_config(config: dict, key: str, default: datetime, warn_msg: str | None = None) -> datetime:
-    """Read an ISO-format datetime parameter from workflow config, falling back to default if absent/invalid.
+def _parse_datetime_config(config: dict, key: str) -> datetime:
+    """Read a required ISO-format datetime parameter from workflow config.
 
     Returns:
         The parsed datetime value.
+
+    Raises:
+        ValueError: If the key is missing, not a string, or not a valid ISO-format datetime.
     """
     if key not in config:
-        if warn_msg:
-            logging.warning(warn_msg)
-        return default
+        raise ValueError(f"workflow_config missing required key '{key}'.")
 
     value = config[key]
     if not isinstance(value, str):
-        return default
+        raise ValueError(f"workflow_config key '{key}' must be a string, got {type(value).__name__}.")
 
-    try:
-        normalized = value.strip()
-        if normalized.endswith(("Z", "z")):
-            normalized = f"{normalized[:-1]}+00:00"
-        return datetime.fromisoformat(normalized)
-    except ValueError:
-        return default
+    normalized = value.strip()
+    if normalized.endswith(("Z", "z")):
+        normalized = f"{normalized[:-1]}+00:00"
+    return datetime.fromisoformat(normalized)
 
 
 def save_debug_esdl(
