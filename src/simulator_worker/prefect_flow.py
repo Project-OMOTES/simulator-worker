@@ -75,11 +75,16 @@ def simulator_flow(
     # Capture and forward solver output only during orchestrated Prefect flow runs.
     capture_session = StdCaptureToLogSession() if in_prefect_flow_context() else nullcontext()
     with capture_session:
-        minio_host = EnvSettings.minio_host()
-        minio_external_url = EnvSettings.minio_external_url()
-        minio_port = EnvSettings.minio_port()
-        minio_access_key = EnvSettings.minio_access_key()
-        minio_secret = EnvSettings.minio_secret()
+        try:
+            minio_host = EnvSettings.minio_host()
+            minio_external_url = EnvSettings.minio_external_url()
+            minio_port = EnvSettings.minio_port()
+            minio_access_key = EnvSettings.minio_access_key()
+            minio_secret = EnvSettings.minio_secret()
+        except Exception as e:
+            # No MinIO configuration available: cannot write a failure artifact either.
+            logging.exception("MinIO configuration is unavailable")
+            return Failed(message=f"Simulator flow failed: {e}")
 
         esdl_messages: list[EsdlMessage] = []
         try:
