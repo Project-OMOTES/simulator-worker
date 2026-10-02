@@ -1,7 +1,11 @@
 FROM python:3.11-slim-bookworm
 
-WORKDIR /app/simulator_worker
+# WORKDIR /app/simulator_worker
 
+# install uv
+COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
+
+WORKDIR /src
 
 # Install required tools and OpenJDK 21 manually
 RUN apt-get update && \
@@ -16,9 +20,11 @@ RUN apt-get update && \
 ENV JAVA_HOME=/usr/local/openjdk-21
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
+# enable running commands without 'uv run'
+ENV PATH="/src/.venv/bin:$PATH"
 
-COPY .  /app/simulator_worker/
-WORKDIR /app/simulator_worker
-RUN pip install --no-cache-dir -r /app/simulator_worker/requirements.txt
-RUN pip install .
-ENTRYPOINT ["simulator_worker"]
+COPY src .
