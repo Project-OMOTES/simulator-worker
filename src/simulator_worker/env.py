@@ -46,6 +46,36 @@ class EnvSettings:
         return require_env("INFLUXDB_PASSWORD")
 
     @staticmethod
+    def esdl_output_profiles_type() -> str:
+        """Return the database type used for output ESDL profiles."""
+        return require_env("ESDL_OUTPUT_PROFILES_TYPE")
+
+    @staticmethod
+    def db_hostname() -> str:
+        """Return output profile database host name."""
+        return require_env("DB_HOSTNAME")
+
+    @staticmethod
+    def db_port() -> str:
+        """Return output profile database port."""
+        return require_env("DB_PORT")
+
+    @staticmethod
+    def db_username() -> str:
+        """Return output profile database user name."""
+        return require_env("DB_USERNAME")
+
+    @staticmethod
+    def db_password() -> str:
+        """Return output profile database password."""
+        return require_env("DB_PASSWORD")
+
+    @staticmethod
+    def pg_db_timeseries() -> str:
+        """Return PostgreSQL database name for output timeseries."""
+        return os.getenv("PG_DB_TIMESERIES", "omotes_timeseries")
+
+    @staticmethod
     def prefect_api_url_for_worker() -> str:
         """Return Prefect API URL to be used inside worker."""
         return require_env("PREFECT_API_URL_FOR_WORKER")

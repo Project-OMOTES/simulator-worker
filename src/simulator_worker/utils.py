@@ -24,11 +24,9 @@ from typing import Any, TypeVar, cast
 import esdl
 import omotes_simulator_core
 import pandas as pd
-from esdl.profiles.influxdbprofilemanager import (
-    ConnectionSettings,
-    InfluxDBProfileManager,
-)
-from esdl.profiles.profilemanager import ProfileManager
+from esdl.profiles.credentials import Credentials
+from esdl.profiles.datatableprofilemanager import DataTableProfileManager
+from esdl.profiles.profile_utils import create_data_table_profile, save_data_table_profiles_to_database
 from omotes_sdk.prefect_util import TimeseriesResource, publish_job_cleanup_resource
 from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 from prefect.runtime import flow_run
@@ -193,6 +191,9 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
 
     Returns:
         The output ESDL file as a string.
+
+    Raises:
+        ValueError: If the configured output profile database type is unsupported.
     """
     esh = pyesdl_from_string(input_esdl)
     input_esdl_uuid = str(esh.energy_system.id)  # store input_esdl UUID
@@ -208,23 +209,36 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     logging.info("Output ESDL UUID: %s, name: %s", output_uuid, output_esdl_name)
     logging.debug(simulation_result.head())
 
-    influxdb_host = os.getenv("INFLUXDB_HOSTNAME", "localhost")
-    influxdb_port = os.getenv("INFLUXDB_PORT", "8086")
-    influxdb_username = os.getenv("INFLUXDB_USERNAME", "testuser")
-    influxdb_password = os.getenv("INFLUXDB_PASSWORD", "")
-    logging.debug("Connecting to InfluxDB: %s@%s:%s", influxdb_username, influxdb_host, influxdb_port)
-    influxdb_conn_settings = ConnectionSettings(
-        host=influxdb_host,
-        port=int(influxdb_port),
-        username=influxdb_username,
-        password=influxdb_password,
-        database=output_uuid,
-        ssl=False,
-        verify_ssl=False,
-    )
-    publish_job_cleanup_resource(
-        TimeseriesResource(type="influxdb", host=influxdb_host, port=int(influxdb_port), database=output_uuid)
-    )
+    output_profiles_type = os.getenv("ESDL_OUTPUT_PROFILES_TYPE", "INFLUXDB").upper()
+    if output_profiles_type not in {"POSTGRESQL", "INFLUXDB"}:
+        raise ValueError(f"Unsupported ESDL_OUTPUT_PROFILES_TYPE: {output_profiles_type}")
+
+    db_host = os.getenv("DB_HOSTNAME", os.getenv("INFLUXDB_HOSTNAME", "localhost"))
+    db_port = int(os.getenv("DB_PORT", os.getenv("INFLUXDB_PORT", "8086")))
+    db_username = os.getenv("DB_USERNAME", os.getenv("INFLUXDB_USERNAME", "testuser"))
+    db_password = os.getenv("DB_PASSWORD", os.getenv("INFLUXDB_PASSWORD", ""))
+    database_type_enum = cast(Any, esdl.DatabaseTypeEnum)
+    profile_type_enum = cast(Any, esdl.ProfileTypeEnum)
+    if output_profiles_type == "POSTGRESQL":
+        db_type = database_type_enum.POSTGRESQL
+        database_name = os.getenv("PG_DB_TIMESERIES", "omotes_timeseries")
+        schema_name = output_uuid
+        cleanup_resource = TimeseriesResource(
+            type="postgresql",
+            host=db_host,
+            port=db_port,
+            database=database_name,
+            schema_name=schema_name,
+        )
+    else:
+        db_type = database_type_enum.INFLUXDB
+        database_name = output_uuid
+        schema_name = None
+        cleanup_resource = TimeseriesResource(type="influxdb", host=db_host, port=db_port, database=database_name)
+
+    logging.debug("Writing output profiles to %s at %s:%s", output_profiles_type, db_host, db_port)
+    Credentials.add_credential(f"{db_host}:{db_port}", db_username, db_password)
+    publish_job_cleanup_resource(cleanup_resource)
 
     series_per_asset_id_per_carrier_id: dict[str, dict[str, list[tuple[tuple[str, str], esdl.Port]]]] = {}
 
@@ -260,62 +274,52 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     )
 
     capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
+    profile_managers_by_asset: dict[str, list[DataTableProfileManager]] = {}
     for carrier_id in series_per_asset_id_per_carrier_id:
         for asset_id in series_per_asset_id_per_carrier_id[carrier_id]:
-            asset = id_to_esdl_item(asset_id, esh.energy_system, esdl.Asset)
-            maybe_asset_capability = next((c for c in capabilities if c in asset.__class__.__mro__), None)
-            asset_capability = maybe_asset_capability.__name__ if maybe_asset_capability else "None"
-            profiles = ProfileManager()
-            profiles.profile_type = "DATETIME_LIST"
-            profiles.profile_header = ["datetime"]
-
             for series_name, port in series_per_asset_id_per_carrier_id[carrier_id][asset_id]:
-                # Add profile to esdl
                 profile_name = series_name[1]
-                reference = esdl.esdl.DataSourceReference(reference=datasource)
-                profiles.profile_header.append(profile_name)
-                profile_type_enum = cast(Any, esdl.ProfileTypeEnum)
-                profile_attributes = esdl.InfluxDBProfile(
-                    database=output_uuid,
-                    measurement=carrier_id,
-                    field=profile_name,
-                    port=int(influxdb_port),
-                    host=influxdb_host,
-                    startDate=simulation_result.index[0],
-                    endDate=simulation_result.index[-1],
-                    id=str(uuid.uuid4()),
-                    filters=f"\"assetId\"='{asset_id}'",
-                    profileType=profile_type_enum.OUTPUT,
-                    dataSource=reference,
+                profile_attributes = create_data_table_profile(
+                    es=esh.energy_system,
+                    database_name=database_name,
+                    table_name=carrier_id,
+                    column_name=profile_name,
+                    start_date=simulation_result.index[0],
+                    end_date=simulation_result.index[-1],
+                    db_host=db_host,
+                    db_port=db_port,
+                    filter=f"\"assetId\"='{asset_id}' AND \"portId\"='{port.id}'",
+                    schema=schema_name,
+                    db_type=db_type,
+                    profile_type=profile_type_enum.OUTPUT,
+                    quantity_and_unit_type=get_profileQuantityAndUnit(profile_name),
+                    data_source=datasource,
                 )
-
-                if (quantity_and_unit := get_profileQuantityAndUnit(profile_name)) is not None:
-                    profile_attributes.profileQuantityAndUnit = quantity_and_unit
                 port.profile.append(profile_attributes)
+                profile_manager = DataTableProfileManager(profile_attributes)
+                profile_manager.profile_header = ["datetime", profile_name]
+                profile_manager.profile_data_list = [
+                    [index, value] for index, value in simulation_result[series_name].items()
+                ]
+                profile_managers_by_asset.setdefault(asset_id, []).append(profile_manager)
 
-            for index, row in simulation_result.loc[
-                :,
-                [series_name for series_name, _ in series_per_asset_id_per_carrier_id[carrier_id][asset_id]],
-            ].iterrows():
-                profiles.profile_data_list.append([index, *row.values.tolist()])
-            profiles.num_profile_items = len(profiles.profile_data_list)
-            profiles.start_datetime = simulation_result.index[0]
-            profiles.end_datetime = simulation_result.index[-1]
-
-            influxdb_profile_manager = InfluxDBProfileManager(influxdb_conn_settings, profiles)
-            field_names = (influxdb_profile_manager.profile_header or [])[1:]
-            influxdb_profile_manager.save_influxdb(
-                measurement=carrier_id,
-                field_names=field_names,
-                tags={
-                    "assetClass": asset.__class__.__name__,
-                    "assetId": asset_id,
-                    "assetName": asset.name,
-                    "capability": asset_capability,
-                    "simulationRun": output_uuid,
-                    "simulation_type": "omotes-simulator",
-                },
-            )
+    for asset_id, profile_managers in profile_managers_by_asset.items():
+        asset = id_to_esdl_item(asset_id, esh.energy_system, esdl.Asset)
+        maybe_asset_capability = next(
+            (capability for capability in capabilities if capability in asset.__class__.__mro__), None
+        )
+        asset_capability = maybe_asset_capability.__name__ if maybe_asset_capability else "None"
+        save_data_table_profiles_to_database(
+            profile_managers,
+            additional_tags={
+                "assetClass": asset.__class__.__name__,
+                "assetId": asset_id,
+                "assetName": asset.name,
+                "capability": asset_capability,
+                "simulationRun": output_uuid,
+                "simulation_type": "omotes-simulator",
+            },
+        )
     output_esdl = esh.to_string()
     return output_esdl
 

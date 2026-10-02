@@ -12,10 +12,12 @@ class TestDeployFlowJobVariables(TestCase):
     def _get_job_variables(self) -> Mapping[str, object]:
         required_env = {
             "LOG_LEVEL": "INFO",
-            "INFLUXDB_HOSTNAME": "omotes_influxdb",
-            "INFLUXDB_PORT": "8096",
-            "INFLUXDB_USERNAME": "user",
-            "INFLUXDB_PASSWORD": "pass",
+            "ESDL_OUTPUT_PROFILES_TYPE": "POSTGRESQL",
+            "DB_HOSTNAME": "db",
+            "DB_PORT": "5432",
+            "DB_USERNAME": "user",
+            "DB_PASSWORD": "pass",
+            "PG_DB_TIMESERIES": "timeseries",
             "PREFECT_API_AUTH_STRING": "token",
             "PREFECT_API_URL_FOR_WORKER": "http://prefect:4200/api",
             "MINIO_HOST": "minio",
@@ -45,10 +47,12 @@ class TestDeployFlowJobVariables(TestCase):
         """Limit simulator runs across deployment versions on one work queue."""
         env = {
             "LOG_LEVEL": "INFO",
-            "INFLUXDB_HOSTNAME": "omotes_influxdb",
-            "INFLUXDB_PORT": "8096",
-            "INFLUXDB_USERNAME": "user",
-            "INFLUXDB_PASSWORD": "pass",
+            "ESDL_OUTPUT_PROFILES_TYPE": "POSTGRESQL",
+            "DB_HOSTNAME": "db",
+            "DB_PORT": "5432",
+            "DB_USERNAME": "user",
+            "DB_PASSWORD": "pass",
+            "PG_DB_TIMESERIES": "timeseries",
             "PREFECT_API_AUTH_STRING": "token",
             "PREFECT_API_URL_FOR_WORKER": "http://prefect:4200/api",
             "MINIO_HOST": "minio",

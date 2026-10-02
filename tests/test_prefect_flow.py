@@ -1,7 +1,11 @@
 from os import environ
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
+import esdl
+import pytest
+from esdl import DatabaseTypeEnum, DataTableProfile
 from esdl.esdl_handler import EnergySystemHandler
 from omotes_sdk.prefect_util import load_input_esdl
 from prefect.states import State
@@ -9,8 +13,12 @@ from prefect.states import State
 from simulator_worker.prefect_flow import SimulatorFlowResult, simulator_flow
 
 MINIO_TEST_ENV = {
-    "INFLUXDB_HOSTNAME": "omotes_influxdb",
-    "INFLUXDB_PORT": "8096",
+    "ESDL_OUTPUT_PROFILES_TYPE": "INFLUXDB",
+    "DB_HOSTNAME": "omotes_influxdb",
+    "DB_PORT": "8096",
+    "DB_USERNAME": "user",
+    "DB_PASSWORD": "password",
+    "PG_DB_TIMESERIES": "omotes_timeseries",
     "MINIO_HOST": "minio",
     "MINIO_EXTERNAL_URL": "http://localhost:9000",
     "MINIO_PORT": "9000",
@@ -19,22 +27,32 @@ MINIO_TEST_ENV = {
 }
 
 
-def test_optimizer_flow_runs_delft_esdl() -> None:
-    """Run the optimizer flow with the same fixture as the local runner."""
+@pytest.mark.parametrize("output_profiles_type", ["INFLUXDB", "POSTGRESQL"])
+def test_simulator_flow_writes_datatable_profiles(output_profiles_type: str) -> None:
+    """Write simulator output as DataTable profiles to the configured database."""
     # Arrange
     fixture_path = Path(__file__).parent / "data" / "esdl" / "simulator_tutorial.esdl"
     input_esdl = fixture_path.read_text()
+    db_host = "omotes_postgres" if output_profiles_type == "POSTGRESQL" else "omotes_influxdb"
+    db_port = "6432" if output_profiles_type == "POSTGRESQL" else "8096"
 
     # Act
     with (
-        patch.dict(environ, MINIO_TEST_ENV, clear=False),
+        patch.dict(
+            environ,
+            MINIO_TEST_ENV
+            | {
+                "ESDL_OUTPUT_PROFILES_TYPE": output_profiles_type,
+                "DB_HOSTNAME": db_host,
+                "DB_PORT": db_port,
+            },
+            clear=False,
+        ),
         patch("simulator_worker.prefect_flow.write_flow_return_artifact_to_minio") as write_artifact,
         patch("simulator_worker.utils.publish_job_cleanup_resource") as publish_resource,
-        patch("simulator_worker.utils.InfluxDBProfileManager") as profile_manager_cls,
+        patch("simulator_worker.utils.Credentials.add_credential") as add_credential,
+        patch("simulator_worker.utils.save_data_table_profiles_to_database") as save_profiles,
     ):
-        profile_manager_cls.return_value.profile_header = ["datetime"]
-        profile_manager_cls.return_value.save_influxdb.return_value = None
-
         result = simulator_flow.fn(
             input_esdl_minio_path=input_esdl,
             workflow_config={
@@ -53,12 +71,81 @@ def test_optimizer_flow_runs_delft_esdl() -> None:
     assert write_artifact.call_args.kwargs["flow_results_folder"] == "test-simulator-run"
     output_handler = EnergySystemHandler()
     output_handler.load_from_string(result.output_esdl)
-    assert publish_resource.call_args.args[0].model_dump(mode="json", exclude_none=True) == {
-        "type": "influxdb",
-        "host": "omotes_influxdb",
-        "port": 8096,
-        "database": output_handler.energy_system.id,
-    }
+    output_system_id = output_handler.energy_system.id
+    expected_db_type = getattr(cast(Any, DatabaseTypeEnum), output_profiles_type)
+    profiles = [
+        profile for profile in output_handler.energy_system.eAllContents() if isinstance(profile, DataTableProfile)
+    ]
+    assert profiles
+    profile_keys = [
+        (
+            profile.configuration.type,
+            profile.configuration.host,
+            profile.configuration.port,
+            profile.configuration.database,
+            profile.schema,
+            profile.tableName,
+            profile.filter,
+            profile.columnName,
+        )
+        for profile in profiles
+    ]
+    assert len(profile_keys) == len(set(profile_keys))
+    assert all('"portId"=' in profile.filter for profile in profiles)
+    assert all(profile.configuration.type == expected_db_type for profile in profiles)
+    assert all(profile.configuration.host == db_host for profile in profiles)
+    assert all(profile.configuration.port == int(db_port) for profile in profiles)
+    if output_profiles_type == "POSTGRESQL":
+        assert all(profile.configuration.database == "omotes_timeseries" for profile in profiles)
+        assert all(profile.schema == output_system_id for profile in profiles)
+        expected_cleanup = {
+            "type": "postgresql",
+            "host": db_host,
+            "port": int(db_port),
+            "database": "omotes_timeseries",
+            "schema": output_system_id,
+        }
+    else:
+        assert all(profile.configuration.database == output_system_id for profile in profiles)
+        expected_cleanup = {
+            "type": "influxdb",
+            "host": db_host,
+            "port": int(db_port),
+            "database": output_system_id,
+        }
+    cleanup_resource = publish_resource.call_args.args[0].model_dump(mode="json", exclude_none=True, by_alias=True)
+    assert cleanup_resource == expected_cleanup
+    save_calls = save_profiles.call_args_list
+    assert len(save_calls) == len({profile.filter.split("'")[1] for profile in profiles})
+    saved_managers = [manager for call in save_calls for manager in call.args[0]]
+    assert len(saved_managers) == len(profiles)
+    assert all(manager.profile_data_list for manager in saved_managers)
+    for call in save_calls:
+        managers = call.args[0]
+        tags = call.kwargs["additional_tags"]
+        assert len({manager.data_table_profile.filter.split("'")[1] for manager in managers}) == 1
+        assert tags["assetId"] == managers[0].data_table_profile.filter.split("'")[1]
+        assert tags["simulationRun"] == output_system_id
+        assert tags["simulation_type"] == "omotes-simulator"
+        asset = next(
+            item
+            for item in output_handler.energy_system.eAllContents()
+            if isinstance(item, esdl.Asset) and item.id == tags["assetId"]
+        )
+        capabilities = [esdl.Transport, esdl.Conversion, esdl.Consumer, esdl.Producer]
+        expected_capability = next(
+            (capability.__name__ for capability in capabilities if capability in asset.__class__.__mro__),
+            "None",
+        )
+        assert tags == {
+            "assetClass": asset.__class__.__name__,
+            "assetId": asset.id,
+            "assetName": asset.name,
+            "capability": expected_capability,
+            "simulationRun": output_system_id,
+            "simulation_type": "omotes-simulator",
+        }
+    add_credential.assert_called_once_with(f"{db_host}:{db_port}", "user", "password")
 
 
 def test_load_input_esdl_reads_minio_reference() -> None:
