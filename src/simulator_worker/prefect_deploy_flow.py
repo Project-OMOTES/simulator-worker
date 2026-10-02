@@ -34,6 +34,7 @@ job_variables = {
         "LOG_LEVEL": EnvSettings.log_level(),
         "PREFECT_API_AUTH_STRING": EnvSettings.prefect_api_auth_string(),
         "PREFECT_API_URL": EnvSettings.prefect_api_url_for_worker(),
+        "ORCHESTRATOR_API_URL": EnvSettings.orchestrator_api_url(),
         "INFLUXDB_HOSTNAME": EnvSettings.influxdb_hostname(),
         "INFLUXDB_PORT": EnvSettings.influxdb_port(),
         "INFLUXDB_USERNAME": EnvSettings.influxdb_username(),
@@ -45,7 +46,7 @@ job_variables = {
         "MINIO_SECRET": EnvSettings.minio_secret(),
         "PREFECT_FLOW_TIMEOUT_SECONDS": str(EnvSettings.prefect_flow_timeout_seconds()),
     },
-    "networks": [EnvSettings.docker_worker_network()],  # for docker worker
+    "networks": EnvSettings.docker_worker_networks(),  # for docker worker
     "auto_remove": True,  # for docker worker, uncomment for debugging
 }
 
@@ -98,6 +99,7 @@ async def main() -> None:
         job_variables=job_variables,
         prefect_work_pool_name=EnvSettings.prefect_work_pool_name(),
         max_concurrent_runs=EnvSettings.prefect_flow_max_concurrent_runs(),
+        work_queue_name=deployment_base_name,
     )
 
     print("Omotes simulator deployment registered successfully")

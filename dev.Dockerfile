@@ -5,6 +5,9 @@ FROM python:3.11-slim-bookworm
 # install uv
 COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
 
+COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker:27-cli /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+
 WORKDIR /src
 
 # Install required tools and OpenJDK 21 manually

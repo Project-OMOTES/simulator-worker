@@ -1081,7 +1081,7 @@ wheels = [
 
 [[package]]
 name = "omotes-sdk-python"
-version = "5.0.4"
+version = "5.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "prefect" },
@@ -1089,9 +1089,9 @@ dependencies = [
     { name = "streamcapture" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/03/eb/b067c8f84aac11a20fbdfa5e10946654ac2894213e00d174113a88f54c7b/omotes_sdk_python-5.0.4.tar.gz", hash = "sha256:47ff5f310ad85dbeb014291d7e29f23c02b20a29724552fb32bca73ca6ea3bd1", size = 26908, upload-time = "2026-08-28T19:47:17.389Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b4/9f/244184bb09a3d785ffcd9e4b0bbd6c5008a7a309b4f3df0e4b42291d5878/omotes_sdk_python-5.1.3.tar.gz", hash = "sha256:8d47180b2e97d9d7374493368ff7165d97e1cd6610c9011ff10661e643031c37", size = 30266, upload-time = "2026-10-01T13:25:51.46Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/89/c6ca93ac2201ab6e88cf41dc5f22edca155c23199362770650d6927033cc/omotes_sdk_python-5.0.4-py3-none-any.whl", hash = "sha256:8653a33fc5a0f6ef838b496b832a26655ee3de3891852d3d3244f6a2d5501c1b", size = 23044, upload-time = "2026-08-28T19:47:15.759Z" },
+    { url = "https://files.pythonhosted.org/packages/72/9b/bfab72f36e24642daf36f2de8ab4ea1cc69c43df50b88cd4d858b6bc7abd/omotes_sdk_python-5.1.3-py3-none-any.whl", hash = "sha256:ce42489053a8f8d082d0eff2724e674383f0037d75a2aac238e15fd1ed96e557", size = 24474, upload-time = "2026-10-01T13:25:50.292Z" },
 ]
 
 [[package]]
@@ -1978,7 +1978,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "kpi-calculator", specifier = "==0.4.3rc0" },
-    { name = "omotes-sdk-python", specifier = "==5.0.4" },
+    { name = "omotes-sdk-python", specifier = "~=5.1.3" },
     { name = "omotes-simulator-core", specifier = "==0.0.30" },
     { name = "pandas", specifier = "~=2.2.2" },
     { name = "pyesdl", specifier = "==26.2" },

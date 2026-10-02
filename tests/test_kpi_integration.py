@@ -39,6 +39,7 @@ from simulator_worker.utils import _parse_float_config  # noqa: E402
 
 MINIO_TEST_ENV = {
     "MINIO_HOST": "minio",
+    "MINIO_EXTERNAL_URL": "http://localhost:9000",
     "MINIO_PORT": "9000",
     "MINIO_ACCESS_KEY": "access",
     "MINIO_SECRET": "secret",
@@ -57,7 +58,7 @@ def _run_simulator(workflow_config: dict) -> SimulatorFlowResult | State[Any] | 
         profile_manager_cls.return_value.profile_header = ["datetime"]
         profile_manager_cls.return_value.save_influxdb.return_value = None
 
-        return simulator_flow.fn(input_esdl, workflow_config, "simulator")
+        return simulator_flow.fn(input_esdl, workflow_config, "simulator", "test-kpi-run")
 
 
 def _default_config() -> dict:

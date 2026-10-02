@@ -29,6 +29,7 @@ from esdl.profiles.influxdbprofilemanager import (
     InfluxDBProfileManager,
 )
 from esdl.profiles.profilemanager import ProfileManager
+from omotes_sdk.prefect_util import TimeseriesResource, publish_job_cleanup_resource
 from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 from prefect.runtime import flow_run
 
@@ -220,6 +221,9 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         database=output_uuid,
         ssl=False,
         verify_ssl=False,
+    )
+    publish_job_cleanup_resource(
+        TimeseriesResource(type="influxdb", host=influxdb_host, port=int(influxdb_port), database=output_uuid)
     )
 
     series_per_asset_id_per_carrier_id: dict[str, dict[str, list[tuple[tuple[str, str], esdl.Port]]]] = {}
