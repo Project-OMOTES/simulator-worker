@@ -46,9 +46,44 @@ class EnvSettings:
         return require_env("INFLUXDB_PASSWORD")
 
     @staticmethod
+    def esdl_output_profiles_type() -> str:
+        """Return the database type used for output ESDL profiles."""
+        return require_env("ESDL_OUTPUT_PROFILES_TYPE")
+
+    @staticmethod
+    def db_hostname() -> str:
+        """Return output profile database host name."""
+        return require_env("DB_HOSTNAME")
+
+    @staticmethod
+    def db_port() -> str:
+        """Return output profile database port."""
+        return require_env("DB_PORT")
+
+    @staticmethod
+    def db_username() -> str:
+        """Return output profile database user name."""
+        return require_env("DB_USERNAME")
+
+    @staticmethod
+    def db_password() -> str:
+        """Return output profile database password."""
+        return require_env("DB_PASSWORD")
+
+    @staticmethod
+    def pg_db_timeseries() -> str:
+        """Return PostgreSQL database name for output timeseries."""
+        return os.getenv("PG_DB_TIMESERIES", "omotes_timeseries")
+
+    @staticmethod
     def prefect_api_url_for_worker() -> str:
         """Return Prefect API URL to be used inside worker."""
         return require_env("PREFECT_API_URL_FOR_WORKER")
+
+    @staticmethod
+    def orchestrator_api_url() -> str:
+        """Return the optional orchestrator API URL used inside workers."""
+        return os.getenv("ORCHESTRATOR_API_URL", "")
 
     @staticmethod
     def prefect_work_pool_name() -> str:
@@ -115,6 +150,10 @@ class EnvSettings:
         return os.getenv("SIMULATOR_WORKER_VERSION", None)
 
     @staticmethod
-    def docker_worker_network() -> str:
-        """Return the Docker network the docker-type worker attaches flow-run containers to."""
-        return os.getenv("PREFECT_DOCKER_WORKER_NETWORK", "omotes")
+    def docker_worker_networks() -> list[str]:
+        """Return Docker networks the docker-type worker attaches flow-run containers to."""
+        networks = os.getenv(
+            "PREFECT_DOCKER_WORKER_NETWORKS",
+            os.getenv("PREFECT_DOCKER_WORKER_NETWORK", "omotes"),
+        )
+        return [network.strip() for network in networks.split(",") if network.strip()]

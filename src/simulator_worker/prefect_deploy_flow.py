@@ -34,10 +34,13 @@ job_variables = {
         "LOG_LEVEL": EnvSettings.log_level(),
         "PREFECT_API_AUTH_STRING": EnvSettings.prefect_api_auth_string(),
         "PREFECT_API_URL": EnvSettings.prefect_api_url_for_worker(),
-        "INFLUXDB_HOSTNAME": EnvSettings.influxdb_hostname(),
-        "INFLUXDB_PORT": EnvSettings.influxdb_port(),
-        "INFLUXDB_USERNAME": EnvSettings.influxdb_username(),
-        "INFLUXDB_PASSWORD": EnvSettings.influxdb_password(),
+        "ORCHESTRATOR_API_URL": EnvSettings.orchestrator_api_url(),
+        "ESDL_OUTPUT_PROFILES_TYPE": EnvSettings.esdl_output_profiles_type(),
+        "DB_HOSTNAME": EnvSettings.db_hostname(),
+        "DB_PORT": EnvSettings.db_port(),
+        "DB_USERNAME": EnvSettings.db_username(),
+        "DB_PASSWORD": EnvSettings.db_password(),
+        "PG_DB_TIMESERIES": EnvSettings.pg_db_timeseries(),
         "MINIO_HOST": EnvSettings.minio_host(),
         "MINIO_PORT": EnvSettings.minio_port(),
         "MINIO_EXTERNAL_URL": EnvSettings.minio_external_url(),
@@ -45,7 +48,7 @@ job_variables = {
         "MINIO_SECRET": EnvSettings.minio_secret(),
         "PREFECT_FLOW_TIMEOUT_SECONDS": str(EnvSettings.prefect_flow_timeout_seconds()),
     },
-    "networks": [EnvSettings.docker_worker_network()],  # for docker worker
+    "networks": EnvSettings.docker_worker_networks(),  # for docker worker
     "auto_remove": True,  # for docker worker, uncomment for debugging
 }
 
@@ -98,6 +101,7 @@ async def main() -> None:
         job_variables=job_variables,
         prefect_work_pool_name=EnvSettings.prefect_work_pool_name(),
         max_concurrent_runs=EnvSettings.prefect_flow_max_concurrent_runs(),
+        work_queue_name=deployment_base_name,
     )
 
     print("Omotes simulator deployment registered successfully")

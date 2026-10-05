@@ -38,7 +38,13 @@ from kpicalculator import DEFAULT_DISCOUNT_RATE_PERCENT, DEFAULT_SYSTEM_LIFETIME
 from simulator_worker.utils import _parse_float_config  # noqa: E402
 
 MINIO_TEST_ENV = {
+    "ESDL_OUTPUT_PROFILES_TYPE": "INFLUXDB",
+    "DB_HOSTNAME": "omotes_influxdb",
+    "DB_PORT": "8096",
+    "DB_USERNAME": "root",
+    "DB_PASSWORD": "9012",
     "MINIO_HOST": "minio",
+    "MINIO_EXTERNAL_URL": "http://localhost:9000",
     "MINIO_PORT": "9000",
     "MINIO_ACCESS_KEY": "access",
     "MINIO_SECRET": "secret",
@@ -52,12 +58,10 @@ def _run_simulator(workflow_config: dict) -> SimulatorFlowResult | State[Any] | 
 
     with (
         patch.dict(environ, MINIO_TEST_ENV, clear=False),
-        patch("simulator_worker.utils.InfluxDBProfileManager") as profile_manager_cls,
+        patch("simulator_worker.utils.Credentials.add_credential"),
+        patch("simulator_worker.utils.save_data_table_profiles_to_database"),
     ):
-        profile_manager_cls.return_value.profile_header = ["datetime"]
-        profile_manager_cls.return_value.save_influxdb.return_value = None
-
-        return simulator_flow.fn(input_esdl, workflow_config, "simulator")
+        return simulator_flow.fn(input_esdl, workflow_config, "simulator", "test-kpi-run")
 
 
 def _default_config() -> dict:

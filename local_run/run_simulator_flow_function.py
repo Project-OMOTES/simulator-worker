@@ -9,13 +9,14 @@ with open(input_esdl_file) as open_file:
     input_esdl = open_file.read()
 
 simulator_flow_result = simulator_flow.fn(
-    input_esdl=input_esdl,
+    input_esdl_minio_path=input_esdl,
     workflow_config={
         "timestep": 3600,
         "start_time": "2019-01-01T00:00:00.000Z",
         "end_time": "2019-01-31T00:00:00.000Z",
     },
     workflow_type_name=workflow_type_name,
+    flow_results_folder="local-simulator-run",
 )
 if not isinstance(simulator_flow_result, SimulatorFlowResult):
     raise RuntimeError(f"Simulator flow did not return a result: {simulator_flow_result}")
