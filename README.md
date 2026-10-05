@@ -64,8 +64,7 @@ simulator-worker/
 │   │   ├── prefect_deploy_flow.py   # Prefect deployment registration script
 │   │   ├── prefect_flow.py          # Prefect flow entry point for simulator runs
 │   │   ├── py.typed                 # Marker for typed package consumers
-│   │   ├── utils.py                 # ESDL/profile/KPI support utilities
-│   │   └── worker_task.py           # Legacy worker task module
+│   │   └── utils.py                 # ESDL/profile/KPI support utilities
 │   └── simulator_worker.egg-info/   # Generated package metadata
 ├── tests/
 │   ├── data/                        # Test fixtures used by flow/integration tests
