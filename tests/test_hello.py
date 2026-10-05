@@ -72,7 +72,7 @@ class TestParseFloatConfig(unittest.TestCase):
     def test__absent_key_with_warn_msg__emits_warning(self) -> None:
         config: dict = {}
 
-        with self.assertLogs("simulator_worker", level=logging.WARNING) as cm:
+        with self.assertLogs(level=logging.WARNING) as cm:
             _parse_float_config(config, "lifetime", 30.0, warn_msg="missing 'lifetime'.")
 
         self.assertIn("missing 'lifetime'.", " ".join(cm.output))
@@ -80,7 +80,7 @@ class TestParseFloatConfig(unittest.TestCase):
     def test__present_key_with_warn_msg__no_warning(self) -> None:
         config: dict = {"lifetime": 25.0}
 
-        with self.assertNoLogs("simulator_worker", level=logging.WARNING):
+        with self.assertNoLogs(level=logging.WARNING):
             result = _parse_float_config(config, "lifetime", 30.0, warn_msg="missing 'lifetime'.")
 
         self.assertEqual(result, 25.0)
