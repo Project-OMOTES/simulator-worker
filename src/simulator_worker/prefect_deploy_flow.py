@@ -18,11 +18,11 @@ async def _build_docker_image(command: list[str], cwd: Path | None = None) -> No
 
 
 prefect_use_local_code_and_image = EnvSettings.prefect_use_local_code_and_image()
-simulator_version = EnvSettings.simulator_worker_version()
 if prefect_use_local_code_and_image:
     simulator_version = "local"
     simulator_image = f"{deployment_base_name}:{simulator_version}"
 else:
+    simulator_version = EnvSettings.simulator_worker_version()
     simulator_image = f"ghcr.io/project-omotes/{deployment_base_name}:{simulator_version}"
 
 job_variables = {
