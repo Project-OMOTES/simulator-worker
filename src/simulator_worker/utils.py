@@ -15,7 +15,6 @@
 """utility functions for simulator-worker."""
 
 import logging
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +29,8 @@ from esdl.profiles.profile_utils import create_data_table_profile, save_data_tab
 from omotes_sdk.prefect_util import TimeseriesResource, publish_job_cleanup_resource
 from omotes_simulator_core.infrastructure.utils import pyesdl_from_string
 from prefect.runtime import flow_run
+
+from simulator_worker.env import EnvSettings
 
 T = TypeVar("T")
 
@@ -209,19 +210,19 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
     logging.info("Output ESDL UUID: %s, name: %s", output_uuid, output_esdl_name)
     logging.debug(simulation_result.head())
 
-    output_profiles_type = os.getenv("ESDL_OUTPUT_PROFILES_TYPE", "INFLUXDB").upper()
+    output_profiles_type = EnvSettings.esdl_output_profiles_type().upper()
     if output_profiles_type not in {"POSTGRESQL", "INFLUXDB"}:
         raise ValueError(f"Unsupported ESDL_OUTPUT_PROFILES_TYPE: {output_profiles_type}")
 
-    db_host = os.getenv("DB_HOSTNAME", os.getenv("INFLUXDB_HOSTNAME", "localhost"))
-    db_port = int(os.getenv("DB_PORT", os.getenv("INFLUXDB_PORT", "8086")))
-    db_username = os.getenv("DB_USERNAME", os.getenv("INFLUXDB_USERNAME", "testuser"))
-    db_password = os.getenv("DB_PASSWORD", os.getenv("INFLUXDB_PASSWORD", ""))
+    db_host = EnvSettings.db_hostname()
+    db_port = int(EnvSettings.db_port())
+    db_username = EnvSettings.db_username()
+    db_password = EnvSettings.db_password()
     database_type_enum = cast(Any, esdl.DatabaseTypeEnum)
     profile_type_enum = cast(Any, esdl.ProfileTypeEnum)
     if output_profiles_type == "POSTGRESQL":
         db_type = database_type_enum.POSTGRESQL
-        database_name = os.getenv("PG_DB_TIMESERIES", "omotes_timeseries")
+        database_name = EnvSettings.pg_db_timeseries()
         schema_name = output_uuid
         cleanup_resource = TimeseriesResource(
             type="postgresql",

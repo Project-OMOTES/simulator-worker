@@ -1,9 +1,11 @@
+import re
 from os import environ
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
 
 import esdl
+import pandas as pd
 import pytest
 from esdl import DatabaseTypeEnum, DataTableProfile
 from esdl.esdl_handler import EnergySystemHandler
@@ -11,6 +13,7 @@ from omotes_sdk.prefect_util import load_input_esdl
 from prefect.states import State
 
 from simulator_worker.prefect_flow import SimulatorFlowResult, simulator_flow
+from simulator_worker.utils import create_output_esdl
 
 MINIO_TEST_ENV = {
     "ESDL_OUTPUT_PROFILES_TYPE": "INFLUXDB",
@@ -206,3 +209,35 @@ def test_simulator_flow_returns_failed_state_when_failure_artifact_write_fails()
     assert result.is_failed()
     assert result.message == "Simulator flow failed: minio unreachable"
     write_artifact.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "missing_name",
+    ["ESDL_OUTPUT_PROFILES_TYPE", "DB_HOSTNAME", "DB_PORT", "DB_USERNAME", "DB_PASSWORD"],
+)
+def test_create_output_esdl_requires_output_profile_database_settings(
+    missing_name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fail on a missing output profile setting instead of falling back to legacy INFLUXDB_* values or defaults."""
+    # Arrange
+    input_esdl = (Path(__file__).parent / "data" / "esdl" / "simulator_tutorial.esdl").read_text()
+    for name, value in (
+        MINIO_TEST_ENV
+        | {
+            "INFLUXDB_HOSTNAME": "legacy_influxdb",
+            "INFLUXDB_PORT": "8086",
+            "INFLUXDB_USERNAME": "legacy_user",
+            "INFLUXDB_PASSWORD": "legacy_password",
+        }
+    ).items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.delenv(missing_name, raising=False)
+
+    # Act / Assert
+    with (
+        patch("simulator_worker.utils.publish_job_cleanup_resource"),
+        patch("simulator_worker.utils.Credentials.add_credential"),
+        patch("simulator_worker.utils.save_data_table_profiles_to_database"),
+        pytest.raises(RuntimeError, match=re.escape(f"Missing required environment variable: '{missing_name}'")),
+    ):
+        create_output_esdl(input_esdl, pd.DataFrame())
