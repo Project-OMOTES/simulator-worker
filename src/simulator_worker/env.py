@@ -145,9 +145,16 @@ class EnvSettings:
         return require_env("MINIO_SECRET")
 
     @staticmethod
-    def simulator_worker_version() -> str | None:
-        """Return optional simulator worker version."""
-        return os.getenv("SIMULATOR_WORKER_VERSION", None)
+    def simulator_worker_version() -> str:
+        """Return the simulator worker version used as the published image tag.
+
+        Raises:
+            RuntimeError: If the environment variable is missing or empty.
+        """
+        version = require_env("SIMULATOR_WORKER_VERSION").strip()
+        if not version:
+            raise RuntimeError("Environment variable 'SIMULATOR_WORKER_VERSION' must not be empty")
+        return version
 
     @staticmethod
     def docker_worker_networks() -> list[str]:
