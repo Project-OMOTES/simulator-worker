@@ -180,3 +180,29 @@ def test_simulator_flow_writes_failure_to_shared_folder() -> None:
         "s3://prefect-results/flow-results/simulator-run/input.esdl", "minio", "9000", "access", "secret"
     )
     assert write_artifact.call_args.kwargs["flow_results_folder"] == "simulator-run"
+
+
+def test_simulator_flow_returns_failed_state_when_failure_artifact_write_fails() -> None:
+    """A MinIO error while writing the failure artifact must not mask the original error."""
+    with (
+        patch.dict(environ, MINIO_TEST_ENV, clear=False),
+        patch(
+            "simulator_worker.prefect_flow.load_input_esdl",
+            side_effect=ConnectionError("minio unreachable"),
+        ),
+        patch(
+            "simulator_worker.prefect_flow.write_flow_return_artifact_to_minio",
+            side_effect=ConnectionError("minio still unreachable"),
+        ) as write_artifact,
+    ):
+        result = simulator_flow.fn(
+            input_esdl_minio_path="s3://prefect-results/flow-results/simulator-run/input.esdl",
+            workflow_config={},
+            workflow_type_name="simulator",
+            flow_results_folder="simulator-run",
+        )
+
+    assert isinstance(result, State)
+    assert result.is_failed()
+    assert result.message == "Simulator flow failed: minio unreachable"
+    write_artifact.assert_called_once()

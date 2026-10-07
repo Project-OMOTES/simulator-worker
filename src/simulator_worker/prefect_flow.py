@@ -214,14 +214,18 @@ def simulator_flow(
                 output_esdl=None,
                 esdl_messages=[m.model_dump(mode="json") for m in esdl_messages],
             )
-            write_flow_return_artifact_to_minio(
-                failed_result,
-                minio_host,
-                minio_port,
-                minio_access_key,
-                minio_secret,
-                minio_external_url,
-                flow_results_folder=flow_results_folder,
-            )
+            try:
+                write_flow_return_artifact_to_minio(
+                    failed_result,
+                    minio_host,
+                    minio_port,
+                    minio_access_key,
+                    minio_secret,
+                    minio_external_url,
+                    flow_results_folder=flow_results_folder,
+                )
+            except Exception:
+                # Do not let a MinIO failure mask the original error or prevent returning a Failed state.
+                logging.exception("Failed to write failure artifact to MinIO")
 
             return Failed(message=f"Simulator flow failed: {e}")
