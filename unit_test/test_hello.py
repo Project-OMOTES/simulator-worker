@@ -14,6 +14,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Test script for python template."""
+
 import datetime
 import logging
 import math
@@ -23,9 +24,9 @@ import pandas
 from parameterized import parameterized
 
 from simulator_worker.utils import (
-    add_datetime_index,
     _parse_bool_config,
     _parse_float_config,
+    add_datetime_index,
 )
 
 
@@ -41,9 +42,7 @@ class TestParseBoolConfig(unittest.TestCase):
         ("int_one", {"flag": 1}, "flag", False, True),
         ("unrecognized_string", {"flag": "maybe"}, "flag", True, False),
     ])
-    def test_parse_bool_config(
-        self, _name: str, config: dict, key: str, default: bool, expected: bool
-    ) -> None:
+    def test_parse_bool_config(self, _name: str, config: dict, key: str, default: bool, expected: bool) -> None:
         result = _parse_bool_config(config, key, default)
         self.assertEqual(result, expected)
 
@@ -58,9 +57,7 @@ class TestParseFloatConfig(unittest.TestCase):
         ("non_numeric", {"lifetime": None}, "lifetime", 30.0, 30.0),
         ("invalid_string", {"lifetime": "not-a-number"}, "lifetime", 30.0, 30.0),
     ])
-    def test_parse_float_config(
-        self, _name: str, config: dict, key: str, default: float, expected: float
-    ) -> None:
+    def test_parse_float_config(self, _name: str, config: dict, key: str, default: float, expected: float) -> None:
         result = _parse_float_config(config, key, default)
         self.assertEqual(result, expected)
 
@@ -84,9 +81,7 @@ class TestParseFloatConfig(unittest.TestCase):
         config: dict = {"lifetime": 25.0}
 
         with self.assertNoLogs("simulator_worker", level=logging.WARNING):
-            result = _parse_float_config(
-                config, "lifetime", 30.0, warn_msg="missing 'lifetime'."
-            )
+            result = _parse_float_config(config, "lifetime", 30.0, warn_msg="missing 'lifetime'.")
 
         self.assertEqual(result, 25.0)
 
@@ -98,8 +93,6 @@ class TestHelloWorld(unittest.TestCase):
         end_time = start_time + datetime.timedelta(hours=1)
         timestep = datetime.timedelta(minutes=30)
 
-        result_df = add_datetime_index(
-            df, start_time, end_time, math.floor(timestep.total_seconds())
-        )
+        result_df = add_datetime_index(df, start_time, end_time, math.floor(timestep.total_seconds()))
 
         self.assertEqual(len(result_df), 2)
