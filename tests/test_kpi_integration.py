@@ -183,7 +183,7 @@ class TestAllKPICategories(unittest.TestCase):
     """All supported KPI categories are present in the output ESDL.
 
     This is the canonical end-to-end test: simulator time series → KPI calculator → ESDL export.
-    It enables debug_esdl so the output ESDL is saved as a CI artifact for inspection.
+    It enables debug_esdl to exercise the debug output path; files are written to a temporary directory.
     """
 
     kpi_by_name: ClassVar[dict[str, "esdl.KPI"]]

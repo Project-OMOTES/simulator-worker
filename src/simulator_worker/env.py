@@ -26,26 +26,6 @@ class EnvSettings:
         return require_env("LOG_LEVEL").upper()
 
     @staticmethod
-    def influxdb_hostname() -> str:
-        """Return InfluxDB host name."""
-        return require_env("INFLUXDB_HOSTNAME")
-
-    @staticmethod
-    def influxdb_port() -> str:
-        """Return InfluxDB port."""
-        return require_env("INFLUXDB_PORT")
-
-    @staticmethod
-    def influxdb_username() -> str:
-        """Return InfluxDB user name."""
-        return require_env("INFLUXDB_USERNAME")
-
-    @staticmethod
-    def influxdb_password() -> str:
-        """Return InfluxDB password."""
-        return require_env("INFLUXDB_PASSWORD")
-
-    @staticmethod
     def esdl_output_profiles_type() -> str:
         """Return the database type used for output ESDL profiles."""
         return require_env("ESDL_OUTPUT_PROFILES_TYPE")
