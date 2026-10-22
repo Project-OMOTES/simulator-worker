@@ -3,14 +3,14 @@ FROM python:3.11-slim-bookworm
 # WORKDIR /app/simulator_worker
 
 # install uv
-COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.4 /uv /uvx /bin/
 
 WORKDIR /src
 
 # Install required tools and OpenJDK 21 manually
 RUN apt-get update && \
-    apt-get install -y wget tar ca-certificates && \
-    apt-get clean && \
+    apt-get install -y --no-install-recommends wget tar ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
     wget https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_linux-x64_bin.tar.gz && \
     tar -xzf openjdk-21.0.2_linux-x64_bin.tar.gz && \
     mv jdk-21.0.2 /usr/local/openjdk-21 && \
@@ -19,6 +19,9 @@ RUN apt-get update && \
 # Set environment variables for Java
 ENV JAVA_HOME=/usr/local/openjdk-21
 ENV PATH="$JAVA_HOME/bin:$PATH"
+
+RUN keytool -delete -alias "comodoaaaca [jdk]" -cacerts -storepass changeit && \
+    keytool -delete -alias "emsigneccrootcag3 [jdk]" -cacerts -storepass changeit
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
