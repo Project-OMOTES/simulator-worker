@@ -26,6 +26,7 @@ dependencies = [
     "pyesdl==26.2",
     "pandas ~= 2.2.2",
     "kpi-calculator==0.4.3rc0",
+    "certifi >= 2026.10.19",
 ]
 
 [project.optional-dependencies]

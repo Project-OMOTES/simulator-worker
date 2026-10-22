@@ -4,11 +4,13 @@ WORKDIR /app/simulator_worker
 
 # Install OpenJDK-17
 RUN apt-get -y update  && \
-    apt-get install -y openjdk-17-jdk && \
+    apt-get install -y openjdk-17-jdk ca-certificates && \
+    apt-get install -y --only-upgrade ca-certificates && \
     apt-get clean;
 
 COPY simulator-worker/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --upgrade 'pip>=26.2.2' && \
+    pip install --no-cache-dir -r /app/requirements.txt
 
 COPY simulator-worker/  /app/simulator_worker/
 WORKDIR /app/simulator_worker
