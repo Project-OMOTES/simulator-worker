@@ -45,13 +45,62 @@ just test          # pytest
 To debug test go to the debug view in vscode and run "pytest".\
 When using an editable install of the sdk, don't use the just command as `uv run ...` will remove this editable install.
 
-### Deploy flow to prefect
+### Deploy flow to Prefect
 
-In vscode go to the debug view and run `prefect_deploy_flow`.\
-This will create a deployment on prefect (to the prefect instance on `PREFECT_API_URL`).\
+There are different ways to deploy the Prefect flow:
 
-During development you may want to deploy local code of this repo instead of an already published image, then set `PREFECT_USE_LOCAL_CODE_AND_IMAGE=true` in `.env`.
-To also use local code for the omotes-sdk-python set `PREFECT_USE_LOCAL_SDK=true` as well.
+- locally to a Prefect instance using local code
+- automatically to the NWN MapEditor environments when a container image is published
+
+The deployment is registered as `omotes-simulator-worker:<version>` and runs on the
+`omotes-simulator-worker` work queue. Its concurrency limit is configured with
+`PREFECT_FLOW_MAX_CONCURRENT_RUNS` (4 in the NWN MapEditor environments).
+
+#### Local Prefect deployment
+
+In VS Code, go to the debug view and run `prefect_deploy_flow`. This creates or updates a deployment on the Prefect
+instance configured by `PREFECT_API_URL`.
+
+During development, set `PREFECT_USE_LOCAL_CODE_AND_IMAGE=true` in `.env` to build and deploy a local image instead
+of using a published image. To use local code for `omotes-sdk-python` as well, set `PREFECT_USE_LOCAL_SDK=true`.
+
+#### Deployment via GitHub
+
+Publishing a tagged container image automatically registers the deployment on the NWN MapEditor TEST environment.
+The same image is then deployed to PROD after approval of the `nwn-me-production` GitHub environment. See the
+[deployment workflow](https://github.com/Project-OMOTES/simulator-worker/actions).
+
+### Update omotes-simulator-core version and deploy flow on NWN MapEditor environments
+
+Make sure to have the required [tools](#tools) installed.
+
+Create an issue in the [simulator-worker repository](https://github.com/Project-OMOTES/simulator-worker/issues),
+create a branch for the issue, and pull it locally. Update the `omotes-simulator-core` version in
+[pyproject.toml](pyproject.toml), then run (on Windows, use a `Git Bash` terminal):
+
+```bash
+uv lock
+uv sync --locked --group dev
+just ci
+```
+
+This updates and installs the package versions, then runs the CI checks locally.
+
+Commit the changes to [pyproject.toml](pyproject.toml) and [uv.lock](uv.lock), then push them to GitHub. Optionally,
+create a pull request and merge it into `main`.
+
+Create a new release in the [simulator-worker releases](https://github.com/Project-OMOTES/simulator-worker/releases):
+
+1. Choose **Create a new release** and create a new tag.
+2. Select `main` (or the intended development branch) as the target.
+3. Select the previous tag; do not leave it set to automatic.
+4. Generate release notes.
+5. Optionally select **Set as a pre-release**.
+6. Publish the release.
+
+Publishing the tag builds and publishes a new Docker image, then deploys its Prefect flow to NWN MapEditor TEST.
+Approval is required before deployment to PROD; follow the
+[deployment workflow](https://github.com/Project-OMOTES/simulator-worker/actions).
 
 ## Project Structure
 
