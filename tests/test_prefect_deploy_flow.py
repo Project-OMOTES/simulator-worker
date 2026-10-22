@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Mapping
 from importlib import import_module, reload
 from os import environ
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import AsyncMock, patch
 
@@ -111,3 +112,46 @@ class TestDeployFlowJobVariables(TestCase):
             ("omotes-simulator-worker:1.2.3", "omotes-simulator-worker", 4),
         )
         self.assertEqual(deployment_args["job_variables"]["networks"], ["omotes", "mapeditor-net"])
+
+    def test_local_image_build_uses_repo_root_as_context(self) -> None:
+        """Build the local image from the repository root, whatever the caller's working directory."""
+        env = {
+            "LOG_LEVEL": "INFO",
+            "ESDL_OUTPUT_PROFILES_TYPE": "POSTGRESQL",
+            "DB_HOSTNAME": "db",
+            "DB_PORT": "5432",
+            "DB_USERNAME": "user",
+            "DB_PASSWORD": "pass",
+            "PG_DB_TIMESERIES": "timeseries",
+            "PREFECT_API_AUTH_STRING": "token",
+            "PREFECT_API_URL_FOR_WORKER": "http://prefect:4200/api",
+            "MINIO_HOST": "minio",
+            "MINIO_EXTERNAL_URL": "http://localhost:9000",
+            "MINIO_PORT": "9000",
+            "MINIO_ACCESS_KEY": "access",
+            "MINIO_SECRET": "secret",
+            "PREFECT_WORK_POOL_NAME": "pool",
+            "PREFECT_FLOW_MAX_CONCURRENT_RUNS": "4",
+            "PREFECT_USE_LOCAL_CODE_AND_IMAGE": "true",
+            "PREFECT_USE_LOCAL_SDK": "false",
+            "PREFECT_DOCKER_WORKER_NETWORKS": "omotes",
+        }
+        expected_repo_root = Path(__file__).resolve().parents[1]
+        try:
+            with patch.dict(environ, env, clear=False):
+                module = reload(import_module("simulator_worker.prefect_deploy_flow"))
+                with (
+                    patch.object(module.shutil, "which", return_value="docker"),
+                    patch.object(module, "_build_docker_image", new=AsyncMock()) as build_mock,
+                    patch.object(module, "deploy_flow", new=AsyncMock()),
+                ):
+                    asyncio.run(module.main())
+        finally:
+            # The reload above bound module-level state to the local image; restore the default.
+            self._get_job_variables()
+
+        assert build_mock.await_args is not None
+        command = build_mock.await_args.args[0]
+        self.assertEqual(command[-1], ".")
+        self.assertEqual(build_mock.await_args.kwargs["cwd"], expected_repo_root)
+        self.assertTrue((expected_repo_root / "Dockerfile").is_file())

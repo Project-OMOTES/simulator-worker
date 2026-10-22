@@ -49,12 +49,12 @@ job_variables = {
         "PREFECT_FLOW_TIMEOUT_SECONDS": str(EnvSettings.prefect_flow_timeout_seconds()),
     },
     "networks": EnvSettings.docker_worker_networks(),  # for docker worker
-    "auto_remove": True,  # for docker worker, uncomment for debugging
+    "auto_remove": True,  # for docker worker, set to False to keep finished containers for debugging
 }
 
 
 async def main() -> None:
-    """Deploy training and prediction flows to Prefect.
+    """Deploy the simulator flow to Prefect.
 
     Raises:
         FileNotFoundError: If Docker is unavailable for a local image build.
@@ -65,8 +65,8 @@ async def main() -> None:
         if docker_executable is None:
             raise FileNotFoundError("Docker executable not found on PATH")
 
+        repo_root = Path(__file__).resolve().parents[2]
         if EnvSettings.prefect_use_local_sdk():
-            repo_root = Path(__file__).resolve().parents[2]
             monorepo_root = repo_root.parent
             await _build_docker_image(
                 [
@@ -89,10 +89,11 @@ async def main() -> None:
                     "--provenance=false",
                     "-t",
                     simulator_image,
-                    "..",
+                    ".",
                 ],
+                cwd=repo_root,
             )
-    # When not using local code and image, a publised image is used with tag SIMULATOR_WORKER_IMAGE_TAG.
+    # When not using local code and image, a published image is used with tag SIMULATOR_WORKER_VERSION.
 
     await deploy_flow(
         flow_function=simulator_flow,
