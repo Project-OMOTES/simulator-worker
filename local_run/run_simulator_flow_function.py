@@ -9,7 +9,7 @@ with open(input_esdl_file) as open_file:
     input_esdl = open_file.read()
 
 simulator_flow_result = simulator_flow.fn(
-    input_esdl_minio_path=input_esdl,
+    input_esdl_s3_path=input_esdl,
     workflow_config={
         "timestep": 3600,
         "start_time": "2019-01-01T00:00:00.000Z",

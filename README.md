@@ -9,7 +9,8 @@ This repository is part of the 'Nieuwe Warmte Nu Design Toolkit' project.
 This project uses:
 
 - **uv**: Fast Python package manager and resolver. Install via [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/)
-- **just**: Command runner for common tasks (similar to Make). Install via [https://github.com/casey/just](https://github.com/casey/just)
+- **just**: Command runner for common tasks (similar to Make). Install via
+  [https://github.com/casey/just](https://github.com/casey/just)
 
 ### Setup
 
@@ -52,30 +53,30 @@ There are different ways to deploy the Prefect flow:
 - locally to a Prefect instance using local code
 - automatically to the NWN MapEditor environments when a container image is published
 
-The deployment is registered as `omotes-simulator-worker:<version>` and runs on the
-`omotes-simulator-worker` work queue. Its concurrency limit is configured with
-`PREFECT_FLOW_MAX_CONCURRENT_RUNS` (4 in the NWN MapEditor environments).
+The deployment is registered as `omotes-simulator-worker:<version>` and runs on the `omotes-simulator-worker` work
+queue. Its concurrency limit is configured with `PREFECT_FLOW_MAX_CONCURRENT_RUNS` (4 in the NWN MapEditor
+environments).
 
 #### Local Prefect deployment
 
 In VS Code, go to the debug view and run `prefect_deploy_flow`. This creates or updates a deployment on the Prefect
 instance configured by `PREFECT_API_URL`.
 
-During development, set `PREFECT_USE_LOCAL_CODE_AND_IMAGE=true` in `.env` to build and deploy a local image instead
-of using a published image. To use local code for `omotes-sdk-python` as well, set `PREFECT_USE_LOCAL_SDK=true`.
+During development, set `PREFECT_USE_LOCAL_CODE_AND_IMAGE=true` in `.env` to build and deploy a local image instead of
+using a published image. To use local code for `omotes-sdk-python` as well, set `PREFECT_USE_LOCAL_SDK=true`.
 
 #### Deployment via GitHub
 
-Publishing a tagged container image automatically registers the deployment on the NWN MapEditor TEST environment.
-The same image is then deployed to PROD after approval of the `nwn-me-production` GitHub environment. See the
+Publishing a tagged container image automatically registers the deployment on the NWN MapEditor TEST environment. The
+same image is then deployed to PROD after approval of the `nwn-me-production` GitHub environment. See the
 [deployment workflow](https://github.com/Project-OMOTES/simulator-worker/actions).
 
 ### Update omotes-simulator-core version and deploy flow on NWN MapEditor environments
 
 Make sure to have the required [tools](#tools) installed.
 
-Create an issue in the [simulator-worker repository](https://github.com/Project-OMOTES/simulator-worker/issues),
-create a branch for the issue, and pull it locally. Update the `omotes-simulator-core` version in
+Create an issue in the [simulator-worker repository](https://github.com/Project-OMOTES/simulator-worker/issues), create
+a branch for the issue, and pull it locally. Update the `omotes-simulator-core` version in
 [pyproject.toml](pyproject.toml), then run (on Windows, use a `Git Bash` terminal):
 
 ```bash

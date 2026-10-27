@@ -15,18 +15,18 @@ from prefect.states import State
 from simulator_worker.prefect_flow import SimulatorFlowResult, simulator_flow
 from simulator_worker.utils import create_output_esdl
 
-MINIO_TEST_ENV = {
+S3_TEST_ENV = {
     "ESDL_OUTPUT_PROFILES_TYPE": "INFLUXDB",
     "DB_HOSTNAME": "omotes_influxdb",
     "DB_PORT": "8096",
     "DB_USERNAME": "user",
     "DB_PASSWORD": "password",
     "PG_DB_TIMESERIES": "omotes_timeseries",
-    "MINIO_HOST": "minio",
-    "MINIO_EXTERNAL_URL": "http://localhost:9000",
-    "MINIO_PORT": "9000",
-    "MINIO_ACCESS_KEY": "access",
-    "MINIO_SECRET": "secret",
+    "S3_HOST": "s3",
+    "S3_EXTERNAL_URL": "http://localhost:8233",
+    "S3_PORT": "8333",
+    "S3_ACCESS_KEY": "access",
+    "S3_SECRET_KEY": "secret",
 }
 
 
@@ -43,7 +43,7 @@ def test_simulator_flow_writes_datatable_profiles(output_profiles_type: str) -> 
     with (
         patch.dict(
             environ,
-            MINIO_TEST_ENV
+            S3_TEST_ENV
             | {
                 "ESDL_OUTPUT_PROFILES_TYPE": output_profiles_type,
                 "DB_HOSTNAME": db_host,
@@ -51,13 +51,13 @@ def test_simulator_flow_writes_datatable_profiles(output_profiles_type: str) -> 
             },
             clear=False,
         ),
-        patch("simulator_worker.prefect_flow.write_flow_return_artifact_to_minio") as write_artifact,
+        patch("simulator_worker.prefect_flow.write_flow_return_artifact_to_s3") as write_artifact,
         patch("simulator_worker.utils.publish_job_cleanup_resource") as publish_resource,
         patch("simulator_worker.utils.Credentials.add_credential") as add_credential,
         patch("simulator_worker.utils.save_data_table_profiles_to_database") as save_profiles,
     ):
         result = simulator_flow.fn(
-            input_esdl_minio_path=input_esdl,
+            input_esdl_s3_path=input_esdl,
             workflow_config={
                 "timestep": 3600,
                 "start_time": "2019-01-01T00:00:00.000Z",
@@ -70,7 +70,7 @@ def test_simulator_flow_writes_datatable_profiles(output_profiles_type: str) -> 
     # Assert
     assert isinstance(result, SimulatorFlowResult)
     assert result.output_esdl is not None
-    assert write_artifact.call_args.args[5] == "http://localhost:9000"
+    assert write_artifact.call_args.args[5] == "http://localhost:8233"
     assert write_artifact.call_args.kwargs["flow_results_folder"] == "test-simulator-run"
     output_handler = EnergySystemHandler()
     output_handler.load_from_string(result.output_esdl)
@@ -151,12 +151,12 @@ def test_simulator_flow_writes_datatable_profiles(output_profiles_type: str) -> 
     add_credential.assert_called_once_with(f"{db_host}:{db_port}", "user", "password")
 
 
-def test_load_input_esdl_reads_minio_reference() -> None:
+def test_load_input_esdl_reads_s3_reference() -> None:
     """Read the input ESDL from the orchestrator's shared flow-results folder."""
     with patch("omotes_sdk.prefect_util.RemoteFileSystem") as remote_filesystem:
         remote_filesystem.return_value.read_path.return_value = b"<esdl />"
         result = load_input_esdl(
-            "s3://prefect-results/flow-results/simulator-run/input.esdl", "minio", "9000", "access", "secret"
+            "s3://prefect-results/flow-results/simulator-run/input.esdl", "s3", "8333", "access", "secret"
         )
 
     assert result == "<esdl />"
@@ -166,12 +166,12 @@ def test_load_input_esdl_reads_minio_reference() -> None:
 def test_simulator_flow_writes_failure_to_shared_folder() -> None:
     """Preserve the orchestrator's result folder when input loading fails."""
     with (
-        patch.dict(environ, MINIO_TEST_ENV, clear=False),
+        patch.dict(environ, S3_TEST_ENV, clear=False),
         patch("simulator_worker.prefect_flow.load_input_esdl", side_effect=ValueError("missing input")) as load_input,
-        patch("simulator_worker.prefect_flow.write_flow_return_artifact_to_minio") as write_artifact,
+        patch("simulator_worker.prefect_flow.write_flow_return_artifact_to_s3") as write_artifact,
     ):
         result = simulator_flow.fn(
-            input_esdl_minio_path="s3://prefect-results/flow-results/simulator-run/input.esdl",
+            input_esdl_s3_path="s3://prefect-results/flow-results/simulator-run/input.esdl",
             workflow_config={},
             workflow_type_name="simulator",
             flow_results_folder="simulator-run",
@@ -180,26 +180,26 @@ def test_simulator_flow_writes_failure_to_shared_folder() -> None:
     assert isinstance(result, State)
     assert result.is_failed()
     load_input.assert_called_once_with(
-        "s3://prefect-results/flow-results/simulator-run/input.esdl", "minio", "9000", "access", "secret"
+        "s3://prefect-results/flow-results/simulator-run/input.esdl", "s3", "8333", "access", "secret"
     )
     assert write_artifact.call_args.kwargs["flow_results_folder"] == "simulator-run"
 
 
 def test_simulator_flow_returns_failed_state_when_failure_artifact_write_fails() -> None:
-    """A MinIO error while writing the failure artifact must not mask the original error."""
+    """An S3 error while writing the failure artifact must not mask the original error."""
     with (
-        patch.dict(environ, MINIO_TEST_ENV, clear=False),
+        patch.dict(environ, S3_TEST_ENV, clear=False),
         patch(
             "simulator_worker.prefect_flow.load_input_esdl",
-            side_effect=ConnectionError("minio unreachable"),
+            side_effect=ConnectionError("s3 unreachable"),
         ),
         patch(
-            "simulator_worker.prefect_flow.write_flow_return_artifact_to_minio",
-            side_effect=ConnectionError("minio still unreachable"),
+            "simulator_worker.prefect_flow.write_flow_return_artifact_to_s3",
+            side_effect=ConnectionError("s3 still unreachable"),
         ) as write_artifact,
     ):
         result = simulator_flow.fn(
-            input_esdl_minio_path="s3://prefect-results/flow-results/simulator-run/input.esdl",
+            input_esdl_s3_path="s3://prefect-results/flow-results/simulator-run/input.esdl",
             workflow_config={},
             workflow_type_name="simulator",
             flow_results_folder="simulator-run",
@@ -207,7 +207,7 @@ def test_simulator_flow_returns_failed_state_when_failure_artifact_write_fails()
 
     assert isinstance(result, State)
     assert result.is_failed()
-    assert result.message == "Simulator flow failed: minio unreachable"
+    assert result.message == "Simulator flow failed: s3 unreachable"
     write_artifact.assert_called_once()
 
 
@@ -222,7 +222,7 @@ def test_create_output_esdl_requires_output_profile_database_settings(
     # Arrange
     input_esdl = (Path(__file__).parent / "data" / "esdl" / "simulator_tutorial.esdl").read_text()
     for name, value in (
-        MINIO_TEST_ENV
+        S3_TEST_ENV
         | {
             "INFLUXDB_HOSTNAME": "legacy_influxdb",
             "INFLUXDB_PORT": "8086",

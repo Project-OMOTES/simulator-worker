@@ -15,7 +15,7 @@ from omotes_sdk.prefect_util import (
     create_flow_progress_updater,
     in_prefect_flow_context,
     load_input_esdl,
-    write_flow_return_artifact_to_minio,
+    write_flow_return_artifact_to_s3,
 )
 from omotes_simulator_core.entities.esdl_object import EsdlObject
 from omotes_simulator_core.entities.simulation_configuration import (
@@ -47,7 +47,7 @@ class SimulatorFlowResult(BaseModel):
 
 @flow(timeout_seconds=EnvSettings.prefect_flow_timeout_seconds())
 def simulator_flow(
-    input_esdl_minio_path: str,
+    input_esdl_s3_path: str,
     workflow_config: dict,
     workflow_type_name: str,
     flow_results_folder: str,
@@ -55,10 +55,10 @@ def simulator_flow(
     """Prefect flow function for the simulator worker.
 
     Args:
-        input_esdl_minio_path: The MinIO path containing the input ESDL XML (or XML for local runs).
+        input_esdl_s3_path: The S3 path containing the input ESDL XML (or XML for local runs).
         workflow_config: Extra parameters to configure this run.
         workflow_type_name: Name of the workflow.
-        flow_results_folder: Shared MinIO folder for input and result artifacts.
+        flow_results_folder: Shared S3 folder for input and result artifacts.
 
     Returns:
         SimulatorFlowResult | State[Any] | None: The flow result on success; a Failed state if execution
@@ -79,24 +79,24 @@ def simulator_flow(
     capture_session = StdCaptureToLogSession() if in_prefect_flow_context() else nullcontext()
     with capture_session:
         try:
-            minio_host = EnvSettings.minio_host()
-            minio_external_url = EnvSettings.minio_external_url()
-            minio_port = EnvSettings.minio_port()
-            minio_access_key = EnvSettings.minio_access_key()
-            minio_secret = EnvSettings.minio_secret()
+            s3_host = EnvSettings.s3_host()
+            s3_external_url = EnvSettings.s3_external_url()
+            s3_port = EnvSettings.s3_port()
+            s3_access_key = EnvSettings.s3_access_key()
+            s3_secret_key = EnvSettings.s3_secret_key()
         except Exception as e:
-            # No MinIO configuration available: cannot write a failure artifact either.
-            logging.exception("MinIO configuration is unavailable")
+            # No S3 configuration available: cannot write a failure artifact either.
+            logging.exception("S3 configuration is unavailable")
             return Failed(message=f"Simulator flow failed: {e}")
 
         esdl_messages: list[EsdlMessage] = []
         try:
             input_esdl = load_input_esdl(
-                input_esdl_minio_path,
-                minio_host,
-                minio_port,
-                minio_access_key,
-                minio_secret,
+                input_esdl_s3_path,
+                s3_host,
+                s3_port,
+                s3_access_key,
+                s3_secret_key,
             )
             logging.info(f"workflow config: {workflow_config}")
             if "timestep" not in workflow_config:
@@ -189,13 +189,13 @@ def simulator_flow(
                 esdl_messages=[m.model_dump(mode="json") for m in esdl_messages],
             )
 
-            write_flow_return_artifact_to_minio(
+            write_flow_return_artifact_to_s3(
                 success_result,
-                minio_host,
-                minio_port,
-                minio_access_key,
-                minio_secret,
-                minio_external_url,
+                s3_host,
+                s3_port,
+                s3_access_key,
+                s3_secret_key,
+                s3_external_url,
                 flow_results_folder=flow_results_folder,
             )
 
@@ -215,17 +215,17 @@ def simulator_flow(
                 esdl_messages=[m.model_dump(mode="json") for m in esdl_messages],
             )
             try:
-                write_flow_return_artifact_to_minio(
+                write_flow_return_artifact_to_s3(
                     failed_result,
-                    minio_host,
-                    minio_port,
-                    minio_access_key,
-                    minio_secret,
-                    minio_external_url,
+                    s3_host,
+                    s3_port,
+                    s3_access_key,
+                    s3_secret_key,
+                    s3_external_url,
                     flow_results_folder=flow_results_folder,
                 )
             except Exception:
-                # Do not let a MinIO failure mask the original error or prevent returning a Failed state.
-                logging.exception("Failed to write failure artifact to MinIO")
+                # Do not let an S3 failure mask the original error or prevent returning a Failed state.
+                logging.exception("Failed to write failure artifact to S3")
 
             return Failed(message=f"Simulator flow failed: {e}")
