@@ -75,7 +75,7 @@ def _default_config() -> dict:
     }
 
 
-def _get_energy_system(config: dict) -> "esdl.EnergySystem":
+def _get_energy_system(config: dict) -> esdl.EnergySystem:
     """Helper: Run simulator and return parsed energy system."""
     if pyesdl_from_string is None:
         raise RuntimeError("pyesdl parser is unavailable")
@@ -108,8 +108,8 @@ class TestKPIOutputEsdlStructureAndCostValues(unittest.TestCase):
     data and are deterministic regardless of simulation time series.
     """
 
-    energy_system: ClassVar["esdl.EnergySystem"]
-    kpi_by_name: ClassVar[dict[str, "esdl.KPI"]]
+    energy_system: ClassVar[esdl.EnergySystem]
+    kpi_by_name: ClassVar[dict[str, esdl.KPI]]
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -186,7 +186,7 @@ class TestAllKPICategories(unittest.TestCase):
     It enables debug_esdl to exercise the debug output path; files are written to a temporary directory.
     """
 
-    kpi_by_name: ClassVar[dict[str, "esdl.KPI"]]
+    kpi_by_name: ClassVar[dict[str, esdl.KPI]]
 
     @classmethod
     def setUpClass(cls) -> None:
