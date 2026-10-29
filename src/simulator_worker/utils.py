@@ -18,7 +18,7 @@ import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypeVar, cast
+from typing import Any, cast
 
 import esdl
 import omotes_simulator_core
@@ -32,10 +32,9 @@ from prefect.runtime import flow_run
 
 from simulator_worker.env import EnvSettings
 
-T = TypeVar("T")
 
 
-def id_to_esdl_item(id: str, energy_system: esdl.EnergySystem, item_type: type[T]) -> T:
+def id_to_esdl_item[T](id: str, energy_system: esdl.EnergySystem, item_type: type[T]) -> T:
     """Finds the esdl item for a given ID. This method currently only supports Assets and Ports.
 
     Args:
