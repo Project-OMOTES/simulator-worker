@@ -33,7 +33,6 @@ from prefect.runtime import flow_run
 from simulator_worker.env import EnvSettings
 
 
-
 def id_to_esdl_item[T](id: str, energy_system: esdl.EnergySystem, item_type: type[T]) -> T:
     """Finds the esdl item for a given ID. This method currently only supports Assets and Ports.
 

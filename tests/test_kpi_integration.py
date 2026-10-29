@@ -108,7 +108,7 @@ class TestKPIOutputEsdlStructureAndCostValues(unittest.TestCase):
     data and are deterministic regardless of simulation time series.
     """
 
-    energy_system: ClassVar["esdl.EnergySystem"]
+    energy_system: ClassVar[esdl.EnergySystem]
     kpi_by_name: ClassVar[dict[str, esdl.KPI]]
 
     @classmethod
