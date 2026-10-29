@@ -348,7 +348,7 @@ def _parse_float_config(config: dict, key: str, default: float, warn_msg: str | 
     value = config[key]
     try:
         return float(value) if isinstance(value, (int, float, str)) else default
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return default
 
 
