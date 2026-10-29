@@ -24,12 +24,12 @@ dependencies = [
     "certifi>=2026.10.19",
     "python-dotenv ~= 1.2.4",
     "omotes-sdk-python ~= 5.1.3",
-    "omotes-simulator-core==0.9.0rc1",
+    "omotes-simulator-core==0.9.1",
     "pyesdl ~= 26.10.4",
     "openpyxl",
     "psycopg[binary]",
-    "pandas ~= 3.1.0",
-    "kpi-calculator==0.4.3rc0",
+    "pandas>=3.0.0,<4.0",
+    "kpi-calculator==0.4.4",
 ]
 
 [dependency-groups]
