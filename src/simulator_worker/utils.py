@@ -214,8 +214,6 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
 
     db_host = EnvSettings.db_hostname()
     db_port = int(EnvSettings.db_port())
-    db_username = EnvSettings.db_username()
-    db_password = EnvSettings.db_password()
     database_type_enum = cast(Any, esdl.DatabaseTypeEnum)
     profile_type_enum = cast(Any, esdl.ProfileTypeEnum)
     if output_profiles_type == "POSTGRESQL":
@@ -236,7 +234,6 @@ def create_output_esdl(input_esdl: str, simulation_result: pd.DataFrame) -> str:
         cleanup_resource = TimeseriesResource(type="influxdb", host=db_host, port=db_port, database=database_name)
 
     logging.debug("Writing output profiles to %s at %s:%s", output_profiles_type, db_host, db_port)
-    Credentials.add_credential(f"{db_host}:{db_port}", db_username, db_password)
     publish_job_cleanup_resource(cleanup_resource)
 
     series_per_asset_id_per_carrier_id: dict[str, dict[str, list[tuple[tuple[str, str], esdl.Port]]]] = {}
@@ -373,6 +370,13 @@ def _parse_datetime_config(config: dict, key: str) -> datetime:
         normalized = f"{normalized[:-1]}+00:00"
     return datetime.fromisoformat(normalized)
 
+def set_credentials_for_esdl_database() -> None:
+    """Set credentials for the ESDL database based on environment variables."""
+    db_host = EnvSettings.db_hostname()
+    db_port = int(EnvSettings.db_port())
+    db_username = EnvSettings.db_username()
+    db_password = EnvSettings.db_password()
+    Credentials.add_credential(f"{db_host}:{db_port}", db_username, db_password)
 
 def save_debug_esdl(
     simulation_id: uuid.UUID | str, input_esdl: str, output_esdl: str, base_dir: str | Path = "."

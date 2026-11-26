@@ -34,7 +34,7 @@ from simulator_worker.utils import (
     _parse_float_config,
     add_datetime_index,
     create_output_esdl,
-    save_debug_esdl,
+    save_debug_esdl, set_credentials_for_esdl_database,
 )
 
 
@@ -104,7 +104,7 @@ def simulator_flow(
             timestep = workflow_config["timestep"]
             start = _parse_datetime_config(workflow_config, "start_time")
             end = _parse_datetime_config(workflow_config, "end_time")
-
+            set_credentials_for_esdl_database()
             simulation_id = uuid4()
             config = SimulationConfiguration(
                 simulation_id=simulation_id,
